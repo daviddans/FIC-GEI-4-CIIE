@@ -32,7 +32,8 @@ class MainMenu(abstract.Scene):
         super().__init__(game, name)
         self.audio = audio.SoundManager()
         self.audio.load_music("musiquita.mp3")
-        self.audio.play_music
+        self.audio.load_sound("pum", "choque.mp3")
+        self.audio.play_music()
         text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
         self.playButton = objects.Button(text, 100, 100, 3)
         text = pygame.font.SysFont("Arial",32).render("Settings",False,(100,100,100))
@@ -43,6 +44,7 @@ class MainMenu(abstract.Scene):
     def update(self, dt):
         if self.playButton.update() == True :
             print("COMIENZA EL JUEGO")
+            self.audio.play_sound("pum")
             self.game.switchScene(TestScene(self.game, name="test"))
         if self.settingsButton.update() == True :
             print("Se abren ajustes")
