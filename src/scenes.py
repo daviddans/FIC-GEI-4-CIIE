@@ -3,7 +3,7 @@
 import pygame
 import components
 import player
-import game
+import objects
 import abstract
 
 
@@ -31,11 +31,11 @@ class MainMenu(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
-        self.playButton = components.Button(text, 100, 100, 3)
+        self.playButton = objects.Button(text, 100, 100, 3)
         text = pygame.font.SysFont("Arial",32).render("Settings",False,(100,100,100))
-        self.settingsButton = components.Button(text, 100, 200, 3)
+        self.settingsButton = objects.Button(text, 100, 200, 3)
         text = pygame.font.SysFont("Arial",32).render("Quit",False,(100,100,100))
-        self.quitButton = components.Button(text, 100, 300, 3)
+        self.quitButton = objects.Button(text, 100, 300, 3)
 
     def update(self, dt):
         if self.playButton.update() == True :
