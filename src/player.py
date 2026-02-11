@@ -1,9 +1,11 @@
 import pygame
+import abstract
 import math
 
-class Player():
+class Player(abstract.Object):
     def __init__(self):
         self.pos = (0,0)
+        self.z_layer = 0
 
     def input(self):
         keys = pygame.key.get_pressed()

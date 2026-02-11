@@ -7,36 +7,8 @@ import game
 import abstract
 
 
-#tutorial from pygamece docs for testing
-class TestScene01(Scene):
-    def __init__(self, game, name="unamed"):
-        super().__init__(game, name)
-        self.playerpos= pygame.Vector2(self.game.screen.get_width() / 2, self.game.screen.get_height() / 2)
-    
-    def events(self, events):
-        for event in events:
-            if event.type == pygame.QUIT:
-                self.game.quitGame()
 
-    def update(self, dt):
-        print(dt)
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_w]:
-            self.playerpos.y -= 1 * dt
-        if keys[pygame.K_s]:
-            self.playerpos.y += 1 * dt
-        if keys[pygame.K_a]:
-            self.playerpos.x -= 1 * dt
-        if keys[pygame.K_d]:
-            self.playerpos.x += 1 * dt
-
-    def draw(self):
-        screen = self.game.screen
-        screen.fill("purple")
-        pygame.draw.circle(screen, "red", self.playerpos, 40)
-        pygame.display.flip()
-
-class TestScene02(Scene):
+class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         self.player = player.Player()
@@ -55,7 +27,7 @@ class TestScene02(Scene):
         self.player.draw(screen)
         pygame.display.update()
 
-class MainMenu(Scene):
+class MainMenu(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
@@ -68,7 +40,7 @@ class MainMenu(Scene):
     def update(self, dt):
         if self.playButton.update() == True :
             print("COMIENZA EL JUEGO")
-            self.game.switchScene(TestScene02(self.game, name="test"))
+            self.game.switchScene(TestScene(self.game, name="test"))
         if self.settingsButton.update() == True :
             print("Se abren ajustes")
         if self.quitButton.update() == True :

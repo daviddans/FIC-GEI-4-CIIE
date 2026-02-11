@@ -14,7 +14,7 @@ class Scene:
         raise NotImplementedError("Scene: " + self.name + ". Draw method not found, must be given an implementation.\n")
 
 class Object:
-    def __init__(self, name="unamed", z_layer = -1):
+    def __init__(self, name="unamed", z_layer = 99):
         self.name = name
         self.z_layer = z_layer
 
