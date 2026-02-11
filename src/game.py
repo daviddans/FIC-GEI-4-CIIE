@@ -38,8 +38,8 @@ class Game:
         self.sceneQuitFlg = True
 
     def changeScene(self, scene):
-        self.quitScene() #without comebakc
         self.sceneStack.append(scene)
+        self.quitScene() #without comebakc
 
     def switchScene(self, scene):
         self.sceneQuitFlg = True #with comeback
