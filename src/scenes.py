@@ -5,7 +5,7 @@ import components
 import player
 import objects
 import abstract
-
+import audio
 
 
 class TestScene(abstract.Scene):
@@ -30,6 +30,9 @@ class TestScene(abstract.Scene):
 class MainMenu(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
+        self.audio = audio.SoundManager()
+        self.audio.load_music("musiquita.mp3")
+        self.audio.play_music
         text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
         self.playButton = objects.Button(text, 100, 100, 3)
         text = pygame.font.SysFont("Arial",32).render("Settings",False,(100,100,100))

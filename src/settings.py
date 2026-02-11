@@ -4,3 +4,4 @@ YSIZE = 800
 MAXFPS = 30
 font1 = "arial"
 fontsize = 32
+ASSETS_DIR = "../Assets"

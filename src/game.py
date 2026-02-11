@@ -9,6 +9,8 @@ import scenes
 class Game:
     def __init__(self):
         pygame.init()
+        # Buffer: 4096 (recomendado en apuntes para evitar cortes)
+        pygame.mixer.pre_init(44100, -16, 2, 4096)
         self.screen = pygame.display.set_mode((settings.XSIZE,settings.YSIZE),0,32)
         self.sceneStack = [scenes.MainMenu(self,"mainmenu")]
         self.clock = pygame.time.Clock()
