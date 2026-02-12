@@ -1,22 +1,22 @@
 import pygame
 import os
-from settings import ASSETS_DIR
+from configparser import ConfigParser
+import utils
 
 class SoundManager:
     def __init__(self):
         # Buffer: 4096 (recomendado en apuntes para evitar cortes)
         pygame.mixer.pre_init(44100, -16, 2, 4096)
-
         pygame.mixer.init()
-
-        self.sounds = {}      # efectos cortos
+        self.sounds = {}
         self.music_loaded = None
 
+        self.config = utils.getConfig()
 
    # ---------------------- SONIDOS ---------------------------------------------------------------
 
     def load_sound(self, name, relative_path):
-        path = os.path.join(ASSETS_DIR, relative_path)
+        path = os.path.join(self.config.get("engine", "assets_path"), relative_path)
         try:
             self.sounds[name] = pygame.mixer.Sound(path)
         except pygame.error as e:
@@ -30,7 +30,7 @@ class SoundManager:
   # ------------------------- MUSICA ----------------------------------------------------------------
 
     def load_music(self, relative_path):
-        path = os.path.join(ASSETS_DIR, relative_path)
+        path = os.path.join(self.config.get("engine", "assets_path"), relative_path)
         try:
             pygame.mixer.music.load(path)
             self.music_loaded = path
