@@ -6,12 +6,15 @@ import player
 import objects
 import abstract
 import audio
-
+import utils
 
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
-        self.player = player.Player()
+        pl = player.Player()
+        self.config = utils.getConfig()
+        self.bg = pygame.image.load(self.config.get("engine","assets_path") + "/background.png")
+        self.addObject(pl)
 
     def events(self, events):
         for event in events:
@@ -19,12 +22,14 @@ class TestScene(abstract.Scene):
                 self.game.quitGame()
 
     def update(self, dt):
-        self.player.upddate(dt)
+        for obj in self.objects:
+            obj.update(dt)
 
     def draw(self):
         screen = self.game.screen
-        screen.fill("purple")
-        self.player.draw(screen)
+        screen.blit(self.bg)
+        for obj in self.objects:
+            obj.draw(screen)
         pygame.display.update()
 
 class MainMenu(abstract.Scene):

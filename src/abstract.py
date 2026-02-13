@@ -1,9 +1,18 @@
 class Scene: 
-    def __init__(self, game, objects=[], name="unamed"):
+    def __init__(self, game, name="unamed"):
         self.game = game
         self.name = name
-        self.objects = objects
+        self.objects = []
     
+    def addObject(self, obj):
+        self.objects.append(obj)
+
+    def getObjects(self):
+        return self.objects
+
+    def removeObject(self, obj):
+        self.objects.remove(obj)
+
     def update(self, dt):
         raise NotImplementedError("Scene: " + self.name + ". Update method not found, must be given an implementation.\n")
     

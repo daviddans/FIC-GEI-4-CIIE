@@ -16,7 +16,7 @@ class Game:
         self.screen = pygame.display.set_mode((self.config.getint("video", "xres"), self.config.getint("video", "xres")), 0, 32)
         self.sceneStack = [scenes.MainMenu(self,"mainmenu")]
         self.clock = pygame.time.Clock()
-
+        
     def game_loop(self,scene):  
         self.sceneQuitFlg = False
         pygame.event.clear()

@@ -4,8 +4,8 @@ import math
 
 class Player(abstract.Object):
     def __init__(self):
+        super().__init__("player", 0)
         self.pos = (0,0)
-        self.z_layer = 0
 
     def input(self):
         keys = pygame.key.get_pressed()
@@ -26,7 +26,7 @@ class Player(abstract.Object):
     def collide(self):
         pass
 
-    def upddate(self, dt):
+    def update(self, dt):
         vector = self.input()
         vector = (vector[0]* dt, vector[1]*dt)
         self.move(vector)
