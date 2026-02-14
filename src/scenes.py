@@ -12,9 +12,10 @@ class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         pl = player.Player()
+        #These are components as they are objects with methods that compose the scene but they dont have individual meaning like an object )
         self.config = utils.getConfig()
         self.bg = pygame.image.load(self.config.get("engine","assets_path") + "/background.png")
-        self.addObject(pl)
+        self.addObject(pl) # This is an object (a player) as it has the common behaviour of update something, respond to events, draw something
 
     def events(self, events):
         for event in events:
@@ -40,11 +41,11 @@ class MainMenu(abstract.Scene):
         self.audio.load_sound("pum", "choque.mp3")
         self.audio.play_music()
         text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
-        self.playButton = objects.Button(text, 100, 100, 3)
+        self.playButton = components.Button(text, 100, 100, 3)
         text = pygame.font.SysFont("Arial",32).render("Settings",False,(100,100,100))
-        self.settingsButton = objects.Button(text, 100, 200, 3)
+        self.settingsButton = components.Button(text, 100, 200, 3)
         text = pygame.font.SysFont("Arial",32).render("Quit",False,(100,100,100))
-        self.quitButton = objects.Button(text, 100, 300, 3)
+        self.quitButton = components.Button(text, 100, 300, 3)
 
     def update(self, dt):
         if self.playButton.update() == True :
