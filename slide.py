@@ -1,21 +1,20 @@
 from PIL import Image
 import numpy as np
 
+
 def load_image(image_path):
-    img = Image.open(image_path)
-    return img
+    return Image.open(image_path)
 
-def is_background_tile(tile, bg_color=(0, 0, 0), threshold=0.95):
-    tile_rgb = tile.convert("RGB")
-    arr = np.array(tile_rgb)
-    
-    # Comparamos cada pixel con el color de fondo
-    matches = np.all(arr == np.array(bg_color), axis=2)
 
-    # Porcentaje de pixels que son fondo
-    bg_ratio = np.sum(matches) / matches.size
+def is_uniform_tile(tile, variance_threshold=8, ratio_threshold=0.95):
+    # Detecta si un tile es de color uniforme.
+    arr = np.array(tile.convert("RGB"))
+    mean_color = np.mean(arr.reshape(-1, 3), axis=0)
+    diff = np.linalg.norm(arr - mean_color, axis=2)
+    similar = diff <= variance_threshold
+    ratio = np.sum(similar) / similar.size
+    return ratio >= ratio_threshold
 
-    return bg_ratio >= threshold
 
 def create_tilemap(img, tile_size):
     img_width, img_height = img.size
@@ -29,7 +28,7 @@ def create_tilemap(img, tile_size):
             upper = y * tile_size
             right = left + tile_size
             lower = upper + tile_size
-            
+
             tile = img.crop((left, upper, right, lower))
             tilemap.append({
                 "image": tile,
@@ -38,26 +37,36 @@ def create_tilemap(img, tile_size):
 
     return tilemap
 
-if __name__ == "__main__":
-    image_path = "TilesmapDavid.png"
-    tile_size = 16
-    img = load_image(image_path)
-    tilemap = create_tilemap(img, tile_size)
 
+def export_tiles(tilemap, discard_uniform=False):
     useful_tiles = []
     discarded = 0
 
     for tile_data in tilemap:
         tile = tile_data["image"]
         pos = tile_data["position"]
-        
-        if is_background_tile(tile, bg_color=(0, 0, 0), threshold=0.95):
+
+        if discard_uniform and is_uniform_tile(tile):
             discarded += 1
-        else:
-            useful_tiles.append(tile_data)
+            continue
+
+        useful_tiles.append(tile_data)
 
     for index, tile_data in enumerate(useful_tiles):
         tile = tile_data["image"]
         pos = tile_data["position"]
-        tile.save(f"tile_{index}_pos{pos[0]}x{pos[1]}.png")
-        print(f"  Guardado tile_{index} en posicion {pos}")
+        filename = f"Assets/test/tile_{index}_pos{pos[0]}x{pos[1]}.png"
+        tile.save(filename)
+        print(f"Guardado {filename}")
+
+
+if __name__ == "__main__":
+    image_path = "Assets/test/atlas1.png"
+    tile_size = 16
+
+    img = load_image(image_path)
+    tilemap = create_tilemap(img, tile_size)
+
+    # Exporta los tiles, descartando los uniformes o no
+    # En casos como atlas1, desactivarlo y para el resto tenerlo activo
+    export_tiles(tilemap, discard_uniform=False)
