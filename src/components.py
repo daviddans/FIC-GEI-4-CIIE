@@ -1,13 +1,10 @@
 import pygame
 import abstract
 import utils
-#---El animador esta hecho sin contemplar excepciones como
-# que la animacion no exista en el animator etc por lo que había que
-# hacerlo mas seguro a errores y tal (le dejo la revision a otra persona
-# que yo no voy a hacerlo todo)
 
 
-class Animator(pygame.sprite.Sprite):
+
+class Grapics(pygame.sprite.Sprite):
     def __init__(self, rectangle):
         self.animations = dict()
         self.playing = False
@@ -19,8 +16,7 @@ class Animator(pygame.sprite.Sprite):
 
     def addAnimation(self, name, file_name):
         #todo slice and create an image array automatic from file_name
-        sprites = []
-        sprites.append(utils.sliceAtlas())
+        sprites = utils.sliceAtlas(file_name)
         self.animations.update({name : sprites})
     
     def setIdle(self, name):

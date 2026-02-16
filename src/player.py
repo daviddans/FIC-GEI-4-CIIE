@@ -9,8 +9,8 @@ class Player(abstract.Object):
         self.pos = (0,0)
         self.rect = pygame.Rect()
         self.rect.topleft = self.pos
-        self.sprite = components.Animator(self.rect)
-        self.sprite.addAnimation("first", None)
+        self.sprite = components.Grapics(self.rect)
+        self.sprite.addAnimation("first", "player.png")
         self.sprite.playAnimation("first")
         self.sprite.update(0)
     def input(self):
