@@ -19,7 +19,6 @@ def sliceAtlas(image_path, discard_uniform=False, variance_threshold=8, ratio_th
     img_width, img_height = img.get_size()
     tiles_x = img_width // tile_size
     tiles_y = img_height // tile_size
-
     sprites = []
 
     for y in range(tiles_y):

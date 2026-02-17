@@ -15,7 +15,6 @@ class Grapics(pygame.sprite.Sprite):
         self.image = None
 
     def addAnimation(self, name, file_name):
-        #todo slice and create an image array automatic from file_name
         sprites = utils.sliceAtlas(file_name)
         self.animations.update({name : sprites})
     
@@ -31,12 +30,12 @@ class Grapics(pygame.sprite.Sprite):
         self.frame += 1
         if self.frame >= len(self.current):
             self.frame = 0
-
         self.image = self.current[self.frame]
 
     def draw(self, screen):
         if self.image != None:
             screen.blit(self.image ,self.rect)
+
 
 class Button(abstract.Object):
     def __init__(self, img, x=0, y=0, scale=1):

@@ -10,7 +10,7 @@ class Player(abstract.Object):
         self.rect = pygame.Rect()
         self.rect.topleft = self.pos
         self.sprite = components.Grapics(self.rect)
-        self.sprite.addAnimation("first", "player.png")
+        self.sprite.addAnimation("first", "player-base.png")
         self.sprite.playAnimation("first")
         self.sprite.update(0)
     def input(self):
@@ -36,6 +36,7 @@ class Player(abstract.Object):
         vector = self.input()
         vector = (vector[0]* dt, vector[1]*dt)
         self.move(vector)
+        self.sprite.update(dt)
 
     def events(self):
         pass
