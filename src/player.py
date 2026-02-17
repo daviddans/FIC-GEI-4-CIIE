@@ -1,12 +1,18 @@
 import pygame
 import abstract
+import components
 import math
 
 class Player(abstract.Object):
     def __init__(self):
-        super().__init__("player", 0)
+        super().__init__("player", 1)
         self.pos = (0,0)
-
+        self.rect = pygame.Rect()
+        self.rect.topleft = self.pos
+        self.sprite = components.Grapics(self.rect)
+        self.sprite.addAnimation("first", "player-base.png")
+        self.sprite.playAnimation("first")
+        self.sprite.update(0)
     def input(self):
         keys = pygame.key.get_pressed()
         vector = (0,0)
@@ -22,7 +28,7 @@ class Player(abstract.Object):
 
     def move(self, vector):
         self.pos = (self.pos[0]+vector[0], self.pos[1]+vector[1])
-
+        self.rect.topleft = self.pos
     def collide(self):
         pass
 
@@ -30,9 +36,10 @@ class Player(abstract.Object):
         vector = self.input()
         vector = (vector[0]* dt, vector[1]*dt)
         self.move(vector)
+        self.sprite.update(dt)
 
     def events(self):
         pass
 
     def draw(self, screen):
-        img = pygame.draw.circle(screen, "red", self.pos, 40)
+        self.sprite.draw(screen)
