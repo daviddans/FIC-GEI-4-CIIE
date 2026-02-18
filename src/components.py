@@ -26,31 +26,40 @@ but a 1 frame animation works as a static sprite.
 """
 
 class Graphic(pygame.sprite.Sprite):
-    def __init__(self, parent):
+    def __init__(self, parent, animate, speed = 1000):
         if not hasattr(parent,"pos") : raise NotImplementedError("Error on Graphic component, parent must have a \"pos\" atributte.")
+        self.animate = animate
         self.parent = parent
-        self.animations = dict()
-        self.current = None
+        if animate :
+            self.sprites = dict()
+            self.current = None
+            self.frame = 0
+            self.time_elapsed = 0
+            self.time_animation = speed
         self.image = None
         self.rect = None
-        self.frame = 0
-        self.time_elapsed = 0
-        self.time_animation = 1000
-
+        
     def addSprites(self, name, sprites):
-        self.animations.update({name : sprites})
+        self.sprites.update({name : sprites})
 
     def setSprites(self, name):
-        self.current = self.animations[name]
+        if self.animate :
+            self.current = self.sprites[name]
+        else:
+            self.image = self.sprites[name][0]
+            self.rect = self.image.get_rect(topleft=self.parent.pos)
 
     def update(self, dt):
-        self.time_elapsed += dt 
-        if self.time_elapsed >= self.time_animation:
-            self.time_elapsed = 0
-            self.frame = (self.frame + 1) % len(self.current) 
+        if self.animate :
+            self.time_elapsed += dt 
+            if self.time_elapsed >= self.time_animation:
+                self.time_elapsed = 0
+                self.frame = (self.frame + 1) % len(self.current) 
 
-        self.image = self.current[self.frame]
-        self.rect = self.image.get_rect(topleft=self.parent.pos)
+            self.image = self.current[self.frame]
+            self.rect = self.image.get_rect(topleft=self.parent.pos)
+        else:
+            pass
 
     def draw(self, screen):
         #Fallback method, use it in a group is encouraged
