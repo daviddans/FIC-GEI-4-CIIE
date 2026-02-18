@@ -26,8 +26,7 @@ but a 1 frame animation works as a static sprite.
 """
 
 class Graphic(pygame.sprite.Sprite):
-    def __init__(self, parent, animate, speed = 1000):
-        if not hasattr(parent,"pos") : raise NotImplementedError("Error on Graphic component, parent must have a \"pos\" atributte.")
+    def __init__(self, parent:abstract.Object, animate:bool, speed = 1000):
         self.animate = animate
         self.parent = parent
         if animate :
@@ -90,13 +89,3 @@ class Button(abstract.Object):
     
     def draw(self, screen):
         screen.blit(self.img, (self.rect.x, self.rect.y))
-
-
-class Camera(pygame.sprite.Group):
-    def __init__(self, parent):
-        super().__init__()
-        self.scale = 1
-
-    def draw(self):
-        for sprite in self.sprites :
-            pass
