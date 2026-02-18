@@ -3,40 +3,61 @@ import abstract
 import utils
 
 
+#Possible bugs may lay when diffrent size sprites are encountered. As now, it loads a rec that is embbeded on the image 
+#setting the parent object pos as topletf, but we may want to change this behaviour on future
 
-class Grapics(pygame.sprite.Sprite):
-    def __init__(self, rectangle):
+"""
+Component for displaying a set list of images. Each list would be assumed as an animation, 
+but a 1 frame animation works as a static sprite.
+
+-parent -> the object that is implemting the component, its possition will be read
+-animations -> dictionary with a list of surface for an animation and a name
+-current -> list with the current images to show
+-image -> actual surface for the superclass 
+-rect -> rect of self.image for the superclass
+-frame -> current index on the animation
+-time_elapsed -> delta time since the last update in ms
+-time_animation -> time between frames in ms
+
+·addSprites (sprites, name)-> add a new list of surfaces under a name
+·setSprites (name) -> change current animation 
+·update (dt) -> updates the frame to show and position respect the parent
+
+"""
+
+class Graphic(pygame.sprite.Sprite):
+    def __init__(self, parent):
+        if not hasattr(parent,"pos") : raise NotImplementedError("Error on Graphic component, parent must have a \"pos\" atributte.")
+        self.parent = parent
         self.animations = dict()
-        self.playing = False
-        self.frame = 0
-        self.idle = None
         self.current = None
-        self.rect = rectangle
         self.image = None
+        self.rect = None
+        self.frame = 0
+        self.time_elapsed = 0
+        self.time_animation = 1000
 
-    def addAnimation(self, name, file_name):
-        sprites = utils.sliceAtlas(file_name)
+    def addSprites(self, name, sprites):
         self.animations.update({name : sprites})
-    
-    def setIdle(self, name):
-        self.idle = self.animations[name]
 
-    def playAnimation(self, name):
-        if not self.playing :
-            self.current = self.animations[name]
-            self.playing = True
-    
+    def setSprites(self, name):
+        self.current = self.animations[name]
+
     def update(self, dt):
-        self.frame += 1
-        if self.frame >= len(self.current):
-            self.frame = 0
+        self.time_elapsed += dt 
+        if self.time_elapsed >= self.time_animation:
+            self.time_elapsed = 0
+            self.frame = (self.frame + 1) % len(self.current) 
+
         self.image = self.current[self.frame]
+        self.rect = self.image.get_rect(topleft=self.parent.pos)
 
     def draw(self, screen):
-        if self.image != None:
-            screen.blit(self.image ,self.rect)
+        #Fallback method, use it in a group is encouraged
+        screen.blit(self.image, self.rect)
 
 
+#Button may not be an component but a object instead consider refactor
 class Button(abstract.Object):
     def __init__(self, img, x=0, y=0, scale=1):
         super().__init__("button",0)
@@ -60,3 +81,13 @@ class Button(abstract.Object):
     
     def draw(self, screen):
         screen.blit(self.img, (self.rect.x, self.rect.y))
+
+
+class Camera(pygame.sprite.Group):
+    def __init__(self, parent):
+        super().__init__()
+        self.scale = 1
+
+    def draw(self):
+        for sprite in self.sprites :
+            pass

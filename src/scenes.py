@@ -32,7 +32,7 @@ class MainMenu(abstract.Scene):
         super().__init__(game, name)
         self.audio = audio.SoundManager()
         self.audio.load_music("musiquita.mp3")
-        self.audio.load_sound("pum", "choque.mp3")
+        self.audio.load_sound("pum", "choque.mp3")    
         self.audio.play_music()
         text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
         self.playButton = components.Button(text, 100, 100, 3)
