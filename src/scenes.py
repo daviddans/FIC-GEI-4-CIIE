@@ -13,6 +13,11 @@ class TestScene(abstract.Scene):
         super().__init__(game, name)
         self.player = player.Player()
         self.bg = pygame.image.load(utils.conf.get("engine","assets_path") + "background.png")
+        self.camera = objects.Camera()
+        self.camera.setReference(self.player)
+        self.testGroup = pygame.sprite.Group()
+        self.camera.addGroup(self.testGroup)
+        self.player.sprite.add(self.testGroup)
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
@@ -20,11 +25,12 @@ class TestScene(abstract.Scene):
 
     def update(self, dt):
         self.player.update(dt)
-
+        self.camera.update(dt)
+        
     def draw(self):
         screen = self.game.screen
         screen.blit(self.bg)
-        self.player.draw(screen)
+        self.camera.draw(screen)
         pygame.display.update()
 
 class MainMenu(abstract.Scene):

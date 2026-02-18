@@ -7,7 +7,7 @@ class Player(abstract.Object):
     def __init__(self):
         super().__init__("player", 1)
         self.pos = (0,0)
-        self.sprite = components.AnimatedGraphic(self)
+        self.sprite = components.Graphic(self, True)
         sprites = utils.sliceAtlas("player-base.png")
         self.sprite.addSprites("idle", sprites)
         self.sprite.setSprites("idle")
