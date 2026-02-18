@@ -41,3 +41,5 @@ class Player(abstract.Object):
 
     def draw(self, screen):
         self.sprite.draw(screen)
+
+# ALgo
