@@ -2,7 +2,8 @@ import pygame
 import numpy as np
 from configparser import ConfigParser
 
-def getConfig():
+#The __ makes it private (only available inside the module)
+def __getConfig():
     conf = ConfigParser()
     try:
         conf.read(filenames="config.ini", encoding="utf-8")
@@ -10,10 +11,12 @@ def getConfig():
         raise FileNotFoundError("No se encuentra config.ini")
     return conf
 
+#singleton like pattern (Its not really a singletone but works better on python)
+conf = __getConfig()
 
 def sliceAtlas(image_path, discard_uniform=False, variance_threshold=8, ratio_threshold=0.95):
     pygame.init()
-    conf = getConfig()
+    conf = __getConfig()    
     tile_size = conf.getint("engine","tile_size")
     img = pygame.image.load(conf.get("engine", "assets_path") + image_path)
     img_width, img_height = img.get_size()

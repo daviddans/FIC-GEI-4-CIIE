@@ -11,26 +11,20 @@ import utils
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
-        pl = player.Player()
-        #These are components as they are objects with methods that compose the scene but they dont have individual meaning like an object )
-        self.config = utils.getConfig()
-        self.bg = pygame.image.load(self.config.get("engine","assets_path") + "/background.png")
-        self.addObject(pl) # This is an object (a player) as it has the common behaviour of update something, respond to events, draw something
-
+        self.player = player.Player()
+        self.bg = pygame.image.load(utils.conf.get("engine","assets_path") + "background.png")
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
                 self.game.quitGame()
 
     def update(self, dt):
-        for obj in self.objects:
-            obj.update(dt)
+        self.player.update(dt)
 
     def draw(self):
         screen = self.game.screen
         screen.blit(self.bg)
-        for obj in self.objects:
-            obj.draw(screen)
+        self.player.draw(screen)
         pygame.display.update()
 
 class MainMenu(abstract.Scene):

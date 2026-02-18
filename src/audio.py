@@ -10,8 +10,7 @@ class SoundManager:
         pygame.mixer.init()
         self.sounds = {}
         self.music_loaded = None
-
-        self.config = utils.getConfig()
+        self.config = utils.conf
 
    # ---------------------- SONIDOS ---------------------------------------------------------------
 
