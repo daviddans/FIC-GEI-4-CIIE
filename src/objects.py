@@ -21,7 +21,7 @@ class Camera(abstract.Object):
         size = (utils.conf.getint("video","xres"), utils.conf.getint("video","yres"))
         self.box = pygame.Rect(self.pos, size)
         print("Camera area:" + str(self.box))
-        self.bounding =  self.box.scale_by(0.8, 0.8)
+        self.bounding =  self.box.scale_by(0.5, 0.5)
         print("Bound area:" + str(self.bounding))
         self.reference = None
 
@@ -43,8 +43,8 @@ class Camera(abstract.Object):
 
     def setReference(self, ref:abstract.Object):
         self.reference = ref
-        #initial center
-        offset = (ref.pos[0] - self.bounding.left, ref.pos[1] - self.bounding.top)
+        #initial center on the reference
+        offset = (ref.pos[0] - self.box.center[0], ref.pos[1] - self.box.center[1])
         self.move(offset)
 
     def update(self,dt):
@@ -53,14 +53,14 @@ class Camera(abstract.Object):
                 offx = 0
                 offy = 0
                 if self.reference.pos[0] < self.bounding.left:
-                    offx = self.reference.pos[0] - self.box.left
+                    offx = self.reference.pos[0] - self.bounding.left
                 elif self.reference.pos[0] > self.bounding.right:
-                    offx = self.reference.pos[0] - self.box.right
+                    offx = self.reference.pos[0] - self.bounding.right
 
                 if self.reference.pos[1] < self.bounding.top:
-                    offy = self.reference.pos[1] - self.box.top
+                    offy = self.reference.pos[1] - self.bounding.top
                 elif self.reference.pos[1] > self.bounding.bottom:
-                    offy = self.reference.pos[1] - self.box.bottom
+                    offy = self.reference.pos[1] - self.bounding.bottom
                 self.move((offx,offy))
             
     def draw(self, screen):

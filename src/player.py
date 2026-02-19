@@ -35,7 +35,6 @@ class Player(abstract.Object):
         vector = self.input()
         vector = (vector[0]* dt, vector[1]*dt)
         self.move(vector)
-        self.sprite.update(dt)
 
     def events(self):
         pass
