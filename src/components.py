@@ -31,11 +31,11 @@ class Graphic(pygame.sprite.Sprite):
         self.animate = animate
         self.parent = parent
         if animate :
-            self.sprites = dict()
             self.current = None
             self.frame = 0
             self.time_elapsed = 0
             self.time_animation = speed
+        self.sprites = dict()
         self.image = None
         self.rect = None
         self.camera_pos = (0,0)
@@ -47,7 +47,7 @@ class Graphic(pygame.sprite.Sprite):
         if self.animate :
             self.current = self.sprites[name]
         else:
-            self.image = self.sprites[name][0]
+            self.image = self.sprites[name]
             pos = (self.parent.pos[0] + self.camera_pos[0], self.parent.pos[1] + self.camera_pos[1])
             self.rect = self.image.get_rect(topleft=pos)
 

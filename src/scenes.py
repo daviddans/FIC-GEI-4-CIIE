@@ -16,6 +16,9 @@ class TestScene(abstract.Scene):
         #Order is important. Creates camera, creates empty group, add sprites to the group. adds group to the camera listeners, then sets player as reference obj 
         self.camera = objects.Camera()
         self.testGroup = pygame.sprite.Group()
+        for i in range(0,10):
+            tree = objects.testTree()
+            tree.sprite.add(self.testGroup)
         self.player.sprite.add(self.testGroup)
         self.camera.addGroup(self.testGroup)
         self.camera.setReference(self.player)

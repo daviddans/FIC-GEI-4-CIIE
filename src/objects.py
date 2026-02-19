@@ -1,14 +1,18 @@
 import pygame
 import abstract
 import utils
-class testTree():
-    def __init__(self):
-        pass
+import components
+from random import randint
 
-class testBox():
+#just a class for create a simple sprite in  a random places for testing purposes
+class testTree(abstract.Object):
     def __init__(self):
-        pass
-
+        super().__init__()
+        image = pygame.image.load(utils.conf.get("engine", "assets_path") + "arbol.png")
+        self.pos = (randint(-100, 1000), randint(-100, 1000))
+        self.sprite = components.Graphic(self,False)
+        self.sprite.addSprites("tree",image)
+        self.sprite.setSprites("tree")
 class Camera(abstract.Object):
     def __init__(self, name="camera", pos=(0,0), z_layer=0):
         super().__init__(name, pos, z_layer)
