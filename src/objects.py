@@ -13,12 +13,12 @@ class testTree(abstract.Object):
         self.sprite = components.Graphic(self,False)
         self.sprite.addSprites("tree",image)
         self.sprite.setSprites("tree")
+
 class Camera(abstract.Object):
     def __init__(self, name="camera", pos=(0,0), z_layer=0):
         super().__init__(name, pos, z_layer)
         self.spriteGroups = list()
         size = (utils.conf.getint("video","xres"), utils.conf.getint("video","yres"))
-        bound = (size[0] -100, size[1] -100)
         self.box = pygame.Rect(self.pos, size)
         print("Camera area:" + str(self.box))
         self.bounding =  self.box.scale_by(0.8, 0.8)
@@ -65,4 +65,4 @@ class Camera(abstract.Object):
             
     def draw(self, screen):
         for group in self.spriteGroups:
-            group.draw(screen,self.pos)
+            group.draw(screen)

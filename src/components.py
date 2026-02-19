@@ -63,7 +63,7 @@ class Graphic(pygame.sprite.Sprite):
 
         pos = (self.parent.pos[0] - self.camera_pos[0], self.parent.pos[1] - self.camera_pos[1])
         self.rect.topleft = pos
-        print("Draw pos = " + str(self.rect.topleft) + " Parent pos = " + str(self.parent.pos) + " Camera pos: " + str(self.camera_pos))
+        print("Draw "+ self.parent.name + " pos = " + str(self.rect.topleft) + " Parent pos = " + str(self.parent.pos) + " Camera pos: " + str(self.camera_pos))
 
     def cameraUpdate(self, pos):
         self.camera_pos = pos
@@ -73,7 +73,7 @@ class Graphic(pygame.sprite.Sprite):
         #Fallback function for debug, group use is encouraged
         pos = (self.rect.left + ref[0], self.rect.top + ref[1])
         screen.blit(self.image, pos)
-        print("component at: " + str(self.parent.pos) + " drawed at: " + str(pos))
+        print("Fallback draw call: component at: " + str(self.parent.pos) + " drawed at: " + str(pos))
 
 
 #Button may not be an component but a object instead consider refactor
