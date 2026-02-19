@@ -38,6 +38,7 @@ class Graphic(pygame.sprite.Sprite):
             self.time_animation = speed
         self.image = None
         self.rect = None
+        self.camera_pos = (0,0)
         
     def addSprites(self, name, sprites):
         self.sprites.update({name : sprites})
@@ -47,7 +48,8 @@ class Graphic(pygame.sprite.Sprite):
             self.current = self.sprites[name]
         else:
             self.image = self.sprites[name][0]
-            self.rect = self.image.get_rect(topleft=self.parent.pos)
+            pos = (self.parent.pos[0] + self.camera_pos[0], self.parent.pos[1] + self.camera_pos[1])
+            self.rect = self.image.get_rect(topleft=pos)
 
     def update(self, dt):
         if self.animate :
@@ -57,13 +59,21 @@ class Graphic(pygame.sprite.Sprite):
                 self.frame = (self.frame + 1) % len(self.current) 
 
             self.image = self.current[self.frame]
-            self.rect = self.image.get_rect(topleft=self.parent.pos)
-        else:
-            pass
+            self.rect = self.image.get_rect()
+
+        pos = (self.parent.pos[0] + self.camera_pos[0], self.parent.pos[1] + self.camera_pos[1])
+        self.rect.topleft = pos
+        print("Draw pos = " + str(self.rect.topleft) + " Parent pos = " + str(self.parent.pos) + " Camera pos: " + str(self.camera_pos))
+
+    def cameraUpdate(self, pos):
+        self.camera_pos = pos
+        print("Camera pos updated: " + str(pos))
 
     def draw(self, screen, ref = (0,0)):
+        #Fallback function for debug, group use is encouraged
         pos = (self.rect.left + ref[0], self.rect.top + ref[1])
         screen.blit(self.image, pos)
+        print("component at: " + str(self.parent.pos) + " drawed at: " + str(pos))
 
 
 #Button may not be an component but a object instead consider refactor

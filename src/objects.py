@@ -26,9 +26,16 @@ class Camera(abstract.Object):
         self.reference = ref
 
     def move(self, vector):
+        #move the camera
         self.pos = (self.pos[0]+ vector[0],self.pos[1]+vector[1])
-        self.box.move_to(topleft=self.pos)
-        self.bounding.move_to(center=self.box.center)
+        self.box = self.box.move_to(topleft=self.pos)
+        self.box = self.bounding.move_to(center=self.box.center) 
+        #update listeners
+        for group in self.spriteGroups:
+            for sprite in group.sprites():
+                sprite.cameraUpdate(self.box.topleft)
+
+        print("Camera moved. Amount: " + str(vector) +  " Box:" + str(self.box.topleft) + " bound: " + str(self.bounding.topleft))
 
     def update(self,dt):
         if self.reference is not None :
@@ -45,7 +52,6 @@ class Camera(abstract.Object):
                 else:
                     offy = self.reference.pos[1] - self.bounding.bottom
                 self.move((offx,offy))
-        print("CAMERA at :" + str(self.pos))
             
     def draw(self, screen):
         for group in self.spriteGroups:

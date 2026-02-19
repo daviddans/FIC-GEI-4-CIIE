@@ -27,6 +27,7 @@ class Player(abstract.Object):
 
     def move(self, vector):
         self.pos = (self.pos[0]+vector[0], self.pos[1]+vector[1])
+        
     def collide(self):
         pass
 
@@ -38,6 +39,3 @@ class Player(abstract.Object):
 
     def events(self):
         pass
-
-    def draw(self, screen):
-        self.sprite.draw(screen)
