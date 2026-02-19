@@ -61,7 +61,7 @@ class Camera(abstract.Object):
                     offy = self.reference.pos[1] - self.bounding.top
                 elif self.reference.pos[1] > self.bounding.bottom:
                     offy = self.reference.pos[1] - self.bounding.bottom
-                self.move((offx,offy))
+                self.move((round(offx * 0.2), round(offy * 0.2)))
             
     def draw(self, screen):
         for group in self.spriteGroups:
