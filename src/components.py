@@ -61,7 +61,7 @@ class Graphic(pygame.sprite.Sprite):
             self.image = self.current[self.frame]
             self.rect = self.image.get_rect()
 
-        pos = (self.parent.pos[0] + self.camera_pos[0], self.parent.pos[1] + self.camera_pos[1])
+        pos = (self.parent.pos[0] - self.camera_pos[0], self.parent.pos[1] - self.camera_pos[1])
         self.rect.topleft = pos
         print("Draw pos = " + str(self.rect.topleft) + " Parent pos = " + str(self.parent.pos) + " Camera pos: " + str(self.camera_pos))
 

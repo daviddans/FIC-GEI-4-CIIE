@@ -16,14 +16,13 @@ class Camera(abstract.Object):
         size = (utils.conf.getint("video","xres"), utils.conf.getint("video","yres"))
         bound = (size[0] -100, size[1] -100)
         self.box = pygame.Rect(self.pos, size)
-        self.bounding = pygame.Rect(self.pos, bound) 
+        print("Camera area:" + str(self.box))
+        self.bounding =  self.box.scale_by(0.8, 0.8)
+        print("Bound area:" + str(self.bounding))
         self.reference = None
 
     def addGroup(self, group:pygame.sprite.Group):
         self.spriteGroups.append(group)
-
-    def setReference(self, ref:abstract.Object):
-        self.reference = ref
 
     def move(self, vector):
         #move the camera
@@ -34,8 +33,15 @@ class Camera(abstract.Object):
         for group in self.spriteGroups:
             for sprite in group.sprites():
                 sprite.cameraUpdate(self.box.topleft)
+                
+        print("Camera moved. Amount: " + str(vector) + "Pos: " + str(self.pos) + " Box:" + str(self.box.topleft) + " bound: " + str(self.bounding.topleft))
 
-        print("Camera moved. Amount: " + str(vector) +  " Box:" + str(self.box.topleft) + " bound: " + str(self.bounding.topleft))
+
+    def setReference(self, ref:abstract.Object):
+        self.reference = ref
+        #initial center
+        offset = (ref.pos[0] - self.bounding.left, ref.pos[1] - self.bounding.top)
+        self.move(offset)
 
     def update(self,dt):
         if self.reference is not None :

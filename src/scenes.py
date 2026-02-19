@@ -13,11 +13,12 @@ class TestScene(abstract.Scene):
         super().__init__(game, name)
         self.player = player.Player()
         self.bg = pygame.image.load(utils.conf.get("engine","assets_path") + "background.png")
+        #Order is important. Creates camera, creates empty group, add sprites to the group. adds group to the camera listeners, then sets player as reference obj 
         self.camera = objects.Camera()
-        self.camera.setReference(self.player)
         self.testGroup = pygame.sprite.Group()
-        self.camera.addGroup(self.testGroup)
         self.player.sprite.add(self.testGroup)
+        self.camera.addGroup(self.testGroup)
+        self.camera.setReference(self.player)
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
