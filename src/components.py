@@ -67,7 +67,7 @@ class Graphic(pygame.sprite.Sprite):
 
     def cameraUpdate(self, pos):
         self.camera_pos = pos
-        print("Camera pos updated: " + str(pos))
+        print("Camera pos updated. Recieving: " + str(pos))
 
     def draw(self, screen, ref = (0,0)):
         #Fallback function for debug, group use is encouraged

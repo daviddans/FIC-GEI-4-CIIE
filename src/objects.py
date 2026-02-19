@@ -28,8 +28,8 @@ class Camera(abstract.Object):
     def move(self, vector):
         #move the camera
         self.pos = (self.pos[0]+ vector[0],self.pos[1]+vector[1])
-        self.box = self.box.move_to(topleft=self.pos)
-        self.box = self.bounding.move_to(center=self.box.center) 
+        self.box.topleft = self.pos 
+        self.bounding.center = self.box.center 
         #update listeners
         for group in self.spriteGroups:
             for sprite in group.sprites():
@@ -43,14 +43,14 @@ class Camera(abstract.Object):
                 offx = 0
                 offy = 0
                 if self.reference.pos[0] < self.bounding.left:
-                    offx = self.reference.pos[0] - self.bounding.left
-                else:
-                    offx = self.reference.pos[0] - self.bounding.right
+                    offx = self.reference.pos[0] - self.box.left
+                elif self.reference.pos[0] > self.bounding.right:
+                    offx = self.reference.pos[0] - self.box.right
 
-                if self.reference.pos[1] < self.bounding.topleft[1]:
-                    offy = self.reference.pos[1] - self.bounding.top
-                else:
-                    offy = self.reference.pos[1] - self.bounding.bottom
+                if self.reference.pos[1] < self.bounding.top:
+                    offy = self.reference.pos[1] - self.box.top
+                elif self.reference.pos[1] > self.bounding.bottom:
+                    offy = self.reference.pos[1] - self.box.bottom
                 self.move((offx,offy))
             
     def draw(self, screen):
