@@ -42,8 +42,10 @@ class Game:
         self.sceneQuitFlg = True
 
     def changeScene(self, scene):
+        self.sceneQuitFlg = True #para actualizar el motor
+        self.quitScene() #without comeback
         self.sceneStack.append(scene)
-        self.quitScene() #without comebakc
+        
 
     def switchScene(self, scene):
         self.sceneQuitFlg = True #with comeback
