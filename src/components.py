@@ -1,80 +1,103 @@
 import pygame
 import abstract
+import objects
 import utils
 
+"""
+Class to load a full spritesheet ( atlas ) and give subsurface to be used 
+
+"""
+#Todo: This component should be created and managed by a singletone manager to load only one instance for each atlas
+#ToDo: Improve this clase with a coordinateSheet instead of asumme everything is contiguous and 16x16
+class Atlas():
+    def __init__(self, sheetName):
+        self.atlas = pygame.image.load(utils.conf.get("engine", "assets_path") + sheetName)
+        size = self.atlas.get_size()
+        self.scale = utils.conf.getint("video", "scale")
+        self.atlas = pygame.transform.scale(self.atlas,(size[0]*self.scale, size[1]*self.scale))
+        #This should be a refence to a coordinates sheet, but until a full implementation is given it will be an array
+        self.coordinates = [(0,0), (16,0), (32,0)]
+    
+    #This should recieve an id, and look in the coordinate sheet the rect of said id.
+    #For the moment it will recieve the explicit coordiantes until a better implementation is given
+            # In exaple, the testTree is not displayed correctly as it is 16x32 so it asumes only the top part
+            # those are the scenearios where the coordinate sheet will automaticaly fit images.
+            # The atlas also manages the scaling image, so only one transform will be applied
+    def getSprite(self, id):
+        x = self.coordinates[id][0]
+        y = self.coordinates[id][1]
+        location = pygame.Rect(0,0,16 *self.scale,16*self.scale)
+        location.topleft = (x*self.scale, y*self.scale)
+        return self.atlas.subsurface(location)
 
 #Possible bugs may lay when diffrent size sprites are encountered. As now, it loads a rec that is embbeded on the image 
 #setting the parent object pos as topletf, but we may want to change this behaviour on future
 
 """
-Component for displaying a set list of images. Each list would be assumed as an animation, 
-but a 1 frame animation works as a static sprite.
-
--parent -> the object that is implemting the component, its possition will be read
--animations -> dictionary with a list of surface for an animation and a name
--current -> list with the current images to show
--image -> actual surface for the superclass 
--rect -> rect of self.image for the superclass
--frame -> current index on the animation
--time_elapsed -> delta time since the last update in ms
--time_animation -> time between frames in ms
-
-·addSprites (sprites, name)-> add a new list of surfaces under a name
-·setSprites (name) -> change current animation 
-·update (dt) -> updates the frame to show and position respect the parent
-
+Component for displaying sprites. 
+    ·Atributtes:
+        -Animate:bool -> true is animation, false is a static sprite
+        -Parent:abstract.Object -> Object that has an instance of this component
+        -Atlas:component.Atlas -> Atlas to retrieve the surfaces
+        -Current:int -> Id of the current sprite to show
+        -Names:dict -> Dictionary to store the ids on the atlas related to a name. This way we can play a animation "walk", previously defined instead of play an animation (12, 18) 
+    ·Methods:
+        -AddName(name, begin, end) -> Set a internal name for a static image or animation, an animation
+        will cycle between begin and end id images, for a static image, end will be ignored
+        -Set(name) -> Set the ids related to the name given as the current to display
+        -Set_id(begin, end)-> Set ids to show related to its atlas. For static sprite begin will used. For animation frame will cicle betwen begin and end
 """
 
+
 class Graphic(pygame.sprite.Sprite):
-    def __init__(self, parent:abstract.Object, animate:bool, speed:int = 1000):
+    def __init__(self, parent:abstract.Object, atlas:Atlas, animate:bool, speed:int = 1000):
         super().__init__()
         self.animate = animate
         self.parent = parent
+        self.atlas = atlas
+        self.current = (0,0)
         if animate :
-            self.current = None
             self.frame = 0
             self.time_elapsed = 0
             self.time_animation = speed
-        self.sprites = dict()
+        self.names = dict()
         self.image = None
         self.rect = None
         self.camera_pos = (0,0)
         
-    def addSprites(self, name, sprites):
-        self.sprites.update({name : sprites})
+    def addName(self, name, begin, end):
+        self.names.update({name : (begin, end)})
 
-    def setSprites(self, name):
+    def set(self, name):
+        self.set_id(self.names[name][0], self.names[name][1])
+
+    def set_id(self, begin, end):
+        self.current = (begin, end)
+        self.image = self.atlas.getSprite(begin)
+        self.rect = self.image.get_rect()
+        self.rect.topleft = self.parent.pos
+        if self.animate:
+            self.frame = begin
+
+    def nextFrame(self):
         if self.animate :
-            self.current = self.sprites[name]
-        else:
-            self.image = self.sprites[name]
-            pos = (self.parent.pos[0] + self.camera_pos[0], self.parent.pos[1] + self.camera_pos[1])
-            self.rect = self.image.get_rect(topleft=pos)
+            self.frame = (self.frame + 1) % (self.current[1] - self.current[0]) 
+            self.frame += self.current[0]
+            self.image = self.atlas.getSprite(self.frame)
+            self.rect = self.image.get_rect()
 
     def update(self, dt):
         if self.animate :
             self.time_elapsed += dt 
             if self.time_elapsed >= self.time_animation:
-                self.time_elapsed = 0
-                self.frame = (self.frame + 1) % len(self.current) 
-
-            self.image = self.current[self.frame]
-            self.rect = self.image.get_rect()
-
+                self.nextFrame()
+        else:
+            pass
         pos = (self.parent.pos[0] - self.camera_pos[0], self.parent.pos[1] - self.camera_pos[1])
         self.rect.topleft = pos
-        print("Draw "+ self.parent.name + " pos = " + str(self.rect.topleft) + " Parent pos = " + str(self.parent.pos) + " Camera pos: " + str(self.camera_pos))
 
     def cameraUpdate(self, pos):
         self.camera_pos = pos
-        print("Camera pos updated. Recieving: " + str(pos))
-
-    def draw(self, screen, ref = (0,0)):
-        #Fallback function for debug, group use is encouraged
-        pos = (self.rect.left + ref[0], self.rect.top + ref[1])
-        screen.blit(self.image, pos)
-        print("Fallback draw call: component at: " + str(self.parent.pos) + " drawed at: " + str(pos))
-
 
 #Button may not be an component but a object instead consider refactor
 class Button(abstract.Object):

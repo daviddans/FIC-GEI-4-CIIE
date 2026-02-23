@@ -19,7 +19,7 @@ class TestScene(abstract.Scene):
         for i in range(0,10):
             tree = objects.testTree()
             tree.sprite.add(self.testGroup)
-        self.player.sprite.add(self.testGroup)
+        self.player.graphic.add(self.testGroup)
         self.camera.addGroup(self.testGroup)
         self.camera.setReference(self.player)
     def events(self, events):

@@ -10,13 +10,14 @@ class testTree(abstract.Object):
         super().__init__()
         image = pygame.image.load(utils.conf.get("engine", "assets_path") + "arbol.png")
         self.pos = (randint(-100, 1000), randint(-100, 1000))
-        self.sprite = components.Graphic(self,False)
-        self.sprite.addSprites("tree",image)
-        self.sprite.setSprites("tree")
+        self.atlas = components.Atlas("arbol.png")
+        self.sprite = components.Graphic(self,self.atlas, False)
+        self.sprite.addName("tree", 0,0)
+        self.sprite.set("tree")
 
 class Camera(abstract.Object):
-    def __init__(self, name="camera", pos=(0,0), z_layer=0):
-        super().__init__(name, pos, z_layer)
+    def __init__(self, name="camera", pos=(0,0)):
+        super().__init__(name, pos)
         self.spriteGroups = list()
         size = (utils.conf.getint("video","xres"), utils.conf.getint("video","yres"))
         self.box = pygame.Rect(self.pos, size)
@@ -66,17 +67,3 @@ class Camera(abstract.Object):
     def draw(self, screen):
         for group in self.spriteGroups:
             group.draw(screen)
-
-#ToDo: Improve this clase with a coordinateSheet instead of asumme everything is contiguous and 16x16
-class SpriteSheet():
-    def __init__(self, sheetName):
-        self.atlas = pygame.image.load(utils.conf.get("engine", "assets_path") + sheetName)
-        size = self.atlas.get_size()
-        self.scale = utils.conf.getint("video", "scale")
-        self.atlas = pygame.transform.scale(self.atlas,(size[0]*self.scale, size[1]*self.scale))
-        self.coordinates = None
-    #This should recieve an id, and look in the coordinate sheet the rect of said id.
-    def loadSprite(self, x, y ):
-        location = pygame.Rect(0,0,16 *self.scale,16*self.scale)
-        location.topleft = (x*self.scale, y*self.scale)
-        return self.atlas.subsurface(location)
