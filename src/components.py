@@ -2,6 +2,7 @@ import pygame
 import abstract
 import objects
 import utils
+import json
 
 """
 Class to load a full spritesheet ( atlas ) and give subsurface to be used 
@@ -10,13 +11,25 @@ Class to load a full spritesheet ( atlas ) and give subsurface to be used
 #Todo: This component should be created and managed by a singletone manager to load only one instance for each atlas
 #ToDo: Improve this clase with a coordinateSheet instead of asumme everything is contiguous and 16x16
 class Atlas():
+
+    _master_data = None #para cargar el JSON solo una vez en memoria (eficiencia supongo). Cambiadle el nombre si quereis que a mi no se me ocurre ninguno mejor
+
     def __init__(self, sheetName):
-        self.atlas = pygame.image.load(utils.conf.get("engine", "assets_path") + sheetName)
+        base_path = utils.conf.get("engine", "assets_path")
+        self.atlas = pygame.image.load(base_path + sheetName)
+
+        if Atlas._master_data is None:
+            with open(base_path + "atlas.json", 'r') as f:
+                Atlas._master_data = json.load(f)
+
+        self.key = sheetName.replace(".png", "") #para si tenemos por ejemplo "arbol.png" pues que busque "arbol" en el json
+
+        self.coordinates = Atlas._master_data.get(self.key, {})
+
         size = self.atlas.get_size()
         self.scale = utils.conf.getint("video", "scale")
         self.atlas = pygame.transform.scale(self.atlas,(size[0]*self.scale, size[1]*self.scale))
-        #This should be a refence to a coordinates sheet, but until a full implementation is given it will be an array
-        self.coordinates = [(0,0), (16,0), (32,0)]
+        
     
     #This should recieve an id, and look in the coordinate sheet the rect of said id.
     #For the moment it will recieve the explicit coordiantes until a better implementation is given
@@ -24,10 +37,20 @@ class Atlas():
             # those are the scenearios where the coordinate sheet will automaticaly fit images.
             # The atlas also manages the scaling image, so only one transform will be applied
     def getSprite(self, id):
-        x = self.coordinates[id][0]
-        y = self.coordinates[id][1]
-        location = pygame.Rect(0,0,16 *self.scale,16*self.scale)
-        location.topleft = (x*self.scale, y*self.scale)
+        info = self.coordinates.get(str(id))
+
+        if not info:
+            print(f"Error: ID {id} no encontrado en la seccion {self.key}")
+            #Si no existe que recorte por defecto 16x16 para que no pete el juego basicamente
+            return pygame.Surface((16 * self.scale, 16 * self.scale))
+        
+        x = info["x"]
+        y = info["y"]
+        w = info["w"]
+        h = info["h"]
+        
+        location = pygame.Rect(x * self.scale, y * self.scale, w * self.scale, h * self.scale)
+        
         return self.atlas.subsurface(location)
 
 #Possible bugs may lay when diffrent size sprites are encountered. As now, it loads a rec that is embbeded on the image 
@@ -91,6 +114,7 @@ class Graphic(pygame.sprite.Sprite):
             self.time_elapsed += dt 
             if self.time_elapsed >= self.time_animation:
                 self.nextFrame()
+                self.time_elapsed = 0
         else:
             pass
         pos = (self.parent.pos[0] - self.camera_pos[0], self.parent.pos[1] - self.camera_pos[1])
