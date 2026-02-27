@@ -7,6 +7,7 @@ import objects
 import abstract
 import audio
 import utils
+import dialog
 
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
@@ -17,6 +18,17 @@ class TestScene(abstract.Scene):
         for event in events:
             if event.type == pygame.QUIT:
                 self.game.quitGame()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_t:  # Pulsar D para iniciar diálogo
+                    dm = dialog.DialogManager()
+                    dm.add_dialog(dialog.Dialog("Jugador", "¿Dónde estoy?"))
+                    dm.add_dialog(dialog.Dialog("Narrador", "Has entrado en una escena de prueba."))
+                    dm.add_dialog(dialog.Dialog("Narrador", "Pulsa ESPACIO para continuar los diálogos."))
+                    dm.reset()
+
+                    dialog_scene = dialog.DialogScene(self.game, dm)
+                    self.game.switchScene(dialog_scene)
 
     def update(self, dt):
         self.player.update(dt)
