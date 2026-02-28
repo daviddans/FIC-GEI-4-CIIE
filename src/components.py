@@ -12,20 +12,26 @@ Class to load a full spritesheet ( atlas ) and give subsurface to be used
 #ToDo: Improve this clase with a coordinateSheet instead of asumme everything is contiguous and 16x16
 class Atlas():
 
-    _master_data = None #para cargar el JSON solo una vez en memoria (eficiencia supongo). Cambiadle el nombre si quereis que a mi no se me ocurre ninguno mejor
+    _cached_data = {} # dict para que queden los json cargados en memoria
 
     def __init__(self, sheetName):
         base_path = utils.conf.get("engine", "assets_path")
         self.atlas = pygame.image.load(base_path + sheetName)
 
-        if Atlas._master_data is None:
-            with open(base_path + "atlas.json", 'r') as f:
-                Atlas._master_data = json.load(f)
+        json_name = sheetName.replace(".png", ".json")
+        json_path = base_path + json_name
 
-        self.key = sheetName.replace(".png", "") #para si tenemos por ejemplo "arbol.png" pues que busque "arbol" en el json
+        if json_name not in Atlas._cached_data:
+            try:
+                with open(json_path, 'r') as f:
+                    Atlas._cached_data[json_name] = json.load(f)
+            except FileNotFoundError:
+                print(f"Error: No se encontró el archivo {json_path}")
+                Atlas._cached_data[json_name] = {}
 
-        self.coordinates = Atlas._master_data.get(self.key, {})
-
+        self.coordinates = Atlas._cached_data[json_name]
+        self.key = sheetName.replace(".png", "") 
+        
         size = self.atlas.get_size()
         self.scale = utils.conf.getint("video", "scale")
         self.atlas = pygame.transform.scale(self.atlas,(size[0]*self.scale, size[1]*self.scale))
