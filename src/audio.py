@@ -2,7 +2,7 @@ import pygame
 import os
 from configparser import ConfigParser
 import utils
-
+from resource_manager import ResourceManager 
 class SoundManager:
     def __init__(self):
         # Buffer: 4096 (recomendado en apuntes para evitar cortes)
@@ -12,34 +12,16 @@ class SoundManager:
         self.music_loaded = None
         self.config = utils.conf
 
-   # ---------------------- SONIDOS ---------------------------------------------------------------
+    def play_sound(self, path):
+        sound = ResourceManager().get(path)
+        if sound:
+            sound.play()
 
-    def load_sound(self, name, relative_path):
-        path = os.path.join(self.config.get("engine", "assets_path"), relative_path)
-        try:
-            self.sounds[name] = pygame.mixer.Sound(path)
-        except pygame.error as e:
-            print(f"Error cargando sonido {name}: {e}")
-
-
-    def play_sound(self, name):
-        if name in self.sounds:
-            self.sounds[name].play()
-
-  # ------------------------- MUSICA ----------------------------------------------------------------
-
-    def load_music(self, relative_path):
-        path = os.path.join(self.config.get("engine", "assets_path"), relative_path)
-        try:
-            pygame.mixer.music.load(path)
-            self.music_loaded = path
-        except pygame.error as e:
-            print(f"Error cargando musica: {e}")
-
-    def play_music(self, loop=True):
-        # loops=-1 significa infinito, loops=0 es una sola vez
+#He metido la carga y el play de la música en una función para evitar tener funciones separadas por simplicidad
+    def play_music(self, path, loop=True):    
+        base_path = self.config.get("engine", "assets_path")
+        full_path = os.path.join(base_path, path)
+        
+        pygame.mixer.music.load(full_path)
         loops = -1 if loop else 0
-        try:
-            pygame.mixer.music.play(loops)
-        except Exception as e:
-            print(f"Error al reproducir música: {e}")
+        pygame.mixer.music.play(loops)
