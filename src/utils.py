@@ -1,22 +1,13 @@
 import pygame
 import numpy as np
-from configparser import ConfigParser
+from resourceManager import ResourceManager
 
-#The __ makes it private (only available inside the module)
-def __getConfig():
-    conf = ConfigParser()
-    try:
-        conf.read(filenames="config.ini", encoding="utf-8")
-    except:
-        raise FileNotFoundError("No se encuentra config.ini")
-    return conf
 
-#singleton like pattern (Its not really a singletone but works better on python)
-conf = __getConfig()
 
+#Deprecated since the new atlas system
 def sliceAtlas(image_path, discard_uniform=False, variance_threshold=8, ratio_threshold=0.95):
     pygame.init()
-    conf = __getConfig()    
+    conf = ResourceManager.getConfig()
     tile_size = conf.getint("engine","tile_size")
     img = pygame.image.load(conf.get("engine", "assets_path") + image_path)
     img_width, img_height = img.get_size()

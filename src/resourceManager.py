@@ -1,10 +1,12 @@
+from configparser import ConfigParser
+
 import pygame
 import objects
 import components
 import os
 import json
 from utils import conf
-
+from configparser import ConfigParser
 class ResourceManager:
     _resources = {}
 
@@ -18,8 +20,25 @@ class ResourceManager:
                 return atlas
         else:
             return cls._resources[name]
+        
+    @classmethod
+    def getSound(cls, name):
+        if name not in cls._resources:
+            sound = cls._read_Sound(name)
+            cls._register(name, sound)
+            return sound
+        else:
+            return cls._resources[name]
     
-    
+    @classmethod
+    def getConfig(cls):
+        if "config" not in cls._resources:
+            config = cls._read_Config()
+            cls._register("config", config)
+            return config
+        else:
+            return cls._resources["config"]
+        
     #Cargar archivos que componen un atlas.
     def _read_Atlas(name):
         base_path = conf.get("engine", "assets_path")
@@ -46,7 +65,31 @@ class ResourceManager:
             raise FileNotFoundError(f"No se encontró el archivo de coordenadas para el atlas '{name}'")
         return image, cood
     
+    #Cargar archivos de sonido
+    def _read_Sound(name):
+        base_path = conf.get("engine", "assets_path")
+        full_path = os.path.join(base_path, name)
+        extensions = ['.wav', '.ogg', '.mp3']
+        for ext in extensions:
+            if os.path.exists(full_path + ext):
+                try:
+                    sound = pygame.mixer.Sound(full_path + ext)
+                    return sound
+                except Exception as e:
+                    print(f"Error loading sound '{full_path + ext}' : {e}")
+                    raise e
+        raise FileNotFoundError(f"No se encontró el archivo de sonido para '{name}'")
 
+    #Leer archivo de configuración
+    def _read_Config():
+        conf = ConfigParser()
+        try:
+            conf.read(filenames="config.ini", encoding="utf-8")
+        except:
+            raise FileNotFoundError("No se encuentra config.ini")
+        return conf
+""""
+### Funciones antiguas de ale, las conservo de momento por si aca ###
     def get(cls, key):
         if key not in cls._resources:
             if "." in key: #si no se ha registrado el recurso, se intenta buscar en disco
@@ -77,3 +120,4 @@ class ResourceManager:
             return pygame.mixer.Sound(full_path)
         
         raise Exception(f"Formato no soportado: {extension}")
+    """
