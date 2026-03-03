@@ -7,13 +7,21 @@ import objects
 import abstract
 import audio
 import utils
-from resource_manager import ResourceManager
 
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         self.player = player.Player()
-        self.bg = ResourceManager().get("background.png")
+        self.bg = pygame.image.load(utils.conf.get("engine","assets_path") + "background.png")
+        #Order is important. Creates camera, creates empty group, add sprites to the group. adds group to the camera listeners, then sets player as reference obj 
+        self.camera = objects.Camera()
+        self.testGroup = pygame.sprite.Group()
+        for i in range(0,10):
+            tree = objects.testTree()
+            tree.sprite.add(self.testGroup)
+        self.player.graphic.add(self.testGroup)
+        self.camera.addGroup(self.testGroup)
+        self.camera.setReference(self.player)
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
@@ -35,8 +43,10 @@ class TestScene(abstract.Scene):
 class MainMenu(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
-        self.audio = ResourceManager().get("audio")
-        self.audio.play_music("musiquita.mp3")
+        self.audio = audio.SoundManager()
+        self.audio.load_music("musiquita.mp3")
+        self.audio.load_sound("pum", "choque.mp3")    
+        self.audio.play_music()
         text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
         self.playButton = components.Button(text, 100, 100, 3)
         text = pygame.font.SysFont("Arial",32).render("Settings",False,(100,100,100))
@@ -47,7 +57,7 @@ class MainMenu(abstract.Scene):
     def update(self, dt):
         if self.playButton.update() == True :
             print("COMIENZA EL JUEGO")
-            self.audio.play_sound("choque.mp3")
+            self.audio.play_sound("pum")
             self.game.switchScene(TestScene(self.game, name="test"))
         if self.settingsButton.update() == True :
             print("Se abren ajustes")
