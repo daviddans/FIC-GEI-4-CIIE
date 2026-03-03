@@ -1,7 +1,6 @@
 import pygame
 import numpy as np
 from configparser import ConfigParser
-from resource_manager import ResourceManager
 
 #The __ makes it private (only available inside the module)
 def __getConfig():
@@ -17,9 +16,9 @@ conf = __getConfig()
 
 def sliceAtlas(image_path, discard_uniform=False, variance_threshold=8, ratio_threshold=0.95):
     pygame.init()
-    conf = ResourceManager().get("config") 
+    conf = __getConfig()    
     tile_size = conf.getint("engine","tile_size")
-    img = ResourceManager().get(image_path)
+    img = pygame.image.load(conf.get("engine", "assets_path") + image_path)
     img_width, img_height = img.get_size()
     tiles_x = img_width // tile_size
     tiles_y = img_height // tile_size

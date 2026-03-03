@@ -6,20 +6,13 @@ from pygame.locals import *
 import scenes
 from configparser import ConfigParser
 import utils
-import audio
-from resource_manager import ResourceManager
 #ToDo: implement game as singletone for more security.
 class Game:
     def __init__(self):
         pygame.init()
         # Buffer: 4096 (recomendado en apuntes para evitar cortes)
         pygame.mixer.pre_init(44100, -16, 2, 4096)
-        self.resource_manager = ResourceManager()
-        self.resource_manager.register("config", utils.conf)
         self.config = utils.conf
-
-        self.sound_manager = audio.SoundManager() 
-        self.resource_manager.register("audio", self.sound_manager)
         self.screen = pygame.display.set_mode((self.config.getint("video", "xres"), self.config.getint("video", "xres")), 0, 32)
         self.sceneStack = [scenes.MainMenu(self,"mainmenu")]
         self.clock = pygame.time.Clock()
