@@ -3,21 +3,25 @@
 import pygame
 import sys
 from pygame.locals import *
-import settings
 import scenes
+from configparser import ConfigParser
+from resourceManager import ResourceManager
 #ToDo: implement game as singletone for more security.
 class Game:
     def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((settings.XSIZE,settings.YSIZE),0,32)
+        # Buffer: 4096 (recomendado en apuntes para evitar cortes)
+        pygame.mixer.pre_init(44100, -16, 2, 4096)
+        self.config = ResourceManager.getConfig()
+        self.screen = pygame.display.set_mode((self.config.getint("video", "xres"), self.config.getint("video", "xres")), 0, 32)
         self.sceneStack = [scenes.MainMenu(self,"mainmenu")]
         self.clock = pygame.time.Clock()
-
-    def game_loop(self,scene):
+        
+    def game_loop(self,scene):  
         self.sceneQuitFlg = False
         pygame.event.clear()
         while not self.sceneQuitFlg:
-            dt = self.clock.tick(settings.MAXFPS)
+            dt = self.clock.tick(self.config.getint("video", "maxfps"))
             scene.events(pygame.event.get())
             scene.update(dt)
             scene.draw()
@@ -38,8 +42,10 @@ class Game:
         self.sceneQuitFlg = True
 
     def changeScene(self, scene):
+        self.sceneQuitFlg = True #para actualizar el motor
+        self.quitScene() #without comeback
         self.sceneStack.append(scene)
-        self.quitScene() #without comebakc
+        
 
     def switchScene(self, scene):
         self.sceneQuitFlg = True #with comeback

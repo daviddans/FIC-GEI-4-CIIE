@@ -1,9 +1,18 @@
 class Scene: 
-    def __init__(self, game, objects=[], name="unamed"):
+    def __init__(self, game, name="unamed"):
         self.game = game
         self.name = name
-        self.objects = objects
+        self.objects = []
     
+    def addObject(self, obj):
+        self.objects.append(obj)
+
+    def getObjects(self):
+        return self.objects
+
+    def removeObject(self, obj):
+        self.objects.remove(obj)
+
     def update(self, dt):
         raise NotImplementedError("Scene: " + self.name + ". Update method not found, must be given an implementation.\n")
     
@@ -12,12 +21,12 @@ class Scene:
     
     def draw(self):
         raise NotImplementedError("Scene: " + self.name + ". Draw method not found, must be given an implementation.\n")
-
+# z_layer attribute may be deprecated as the blit order will now be handled by sprites and groups
 class Object:
-    def __init__(self, name="unamed", z_layer = 99):
+    def __init__(self, name="unamed", pos = (0,0)):
         self.name = name
-        self.z_layer = z_layer
-
+        self.pos = pos
+  
     def update(self, dt):
         raise NotImplementedError("Object: " + self.name + ". Update method not found, must be given an implementation.\n")
     

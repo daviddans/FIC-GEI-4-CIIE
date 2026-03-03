@@ -1,11 +1,19 @@
 import pygame
 import abstract
+import components
 import math
+import utils
+import objects
+from resourceManager import ResourceManager
 
 class Player(abstract.Object):
     def __init__(self):
+        super().__init__("player", 1)
         self.pos = (0,0)
-        self.z_layer = 0
+        self.atlas = ResourceManager.getAtlas("player-base")
+        self.graphic = components.Graphic(self, self.atlas, True)
+        self.graphic.addName("idle", 0, 2)
+        self.graphic.set("idle")
 
     def input(self):
         keys = pygame.key.get_pressed()
@@ -22,17 +30,14 @@ class Player(abstract.Object):
 
     def move(self, vector):
         self.pos = (self.pos[0]+vector[0], self.pos[1]+vector[1])
-
+        
     def collide(self):
         pass
 
-    def upddate(self, dt):
+    def update(self, dt):
         vector = self.input()
         vector = (vector[0]* dt, vector[1]*dt)
         self.move(vector)
 
     def events(self):
         pass
-
-    def draw(self, screen):
-        img = pygame.draw.circle(screen, "red", self.pos, 40)
