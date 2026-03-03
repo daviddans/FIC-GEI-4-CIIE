@@ -1,32 +1,20 @@
 import pygame
 import abstract
 import objects
-import utils
 import json
-
+from resourceManager import ResourceManager
 """
 Class to load a full spritesheet ( atlas ) and give subsurface to be used 
 
 """
-#Todo: This component should be created and managed by a singletone manager to load only one instance for each atlas
-#ToDo: Improve this clase with a coordinateSheet instead of asumme everything is contiguous and 16x16
 class Atlas():
-
-    _cached_data = {} # dict para que queden los json cargados en memoria
-
     def __init__(self, image, coords):
         self.atlas = image
         self.coordinates = coords
         size = self.atlas.get_size()
-        self.scale = utils.conf.getint("video", "scale")
+        self.scale = ResourceManager.getConfig().getint("video", "scale")
         self.atlas = pygame.transform.scale(self.atlas,(size[0]*self.scale, size[1]*self.scale))
         
-    
-    #This should recieve an id, and look in the coordinate sheet the rect of said id.
-    #For the moment it will recieve the explicit coordiantes until a better implementation is given
-            # In exaple, the testTree is not displayed correctly as it is 16x32 so it asumes only the top part
-            # those are the scenearios where the coordinate sheet will automaticaly fit images.
-            # The atlas also manages the scaling image, so only one transform will be applied
     def getSprite(self, id):
         info = self.coordinates.get(str(id))
 
@@ -43,9 +31,6 @@ class Atlas():
         location = pygame.Rect(x * self.scale, y * self.scale, w * self.scale, h * self.scale)
         
         return self.atlas.subsurface(location)
-
-#Possible bugs may lay when diffrent size sprites are encountered. As now, it loads a rec that is embbeded on the image 
-#setting the parent object pos as topletf, but we may want to change this behaviour on future
 
 """
 Component for displaying sprites. 

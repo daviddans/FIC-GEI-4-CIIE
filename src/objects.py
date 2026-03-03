@@ -1,16 +1,17 @@
 import pygame
 import abstract
-import utils
 import components
 from random import randint
+from resourceManager import ResourceManager
 
 #just a class for create a simple sprite in  a random places for testing purposes
 class testTree(abstract.Object):
     def __init__(self):
         super().__init__()
-        image = pygame.image.load(utils.conf.get("engine", "assets_path") + "arbol.png")
+        config = ResourceManager.getConfig()
+        image = pygame.image.load(config.get("engine", "assets_path") + "arbol.png")
         self.pos = (randint(-100, 1000), randint(-100, 1000))
-        self.atlas = components.Atlas("arbol.png")
+        self.atlas = ResourceManager.getAtlas("arbol")
         self.sprite = components.Graphic(self,self.atlas, False)
         self.sprite.addName("tree", 0,0)
         self.sprite.set("tree")
@@ -19,7 +20,7 @@ class Camera(abstract.Object):
     def __init__(self, name="camera", pos=(0,0)):
         super().__init__(name, pos)
         self.spriteGroups = list()
-        size = (utils.conf.getint("video","xres"), utils.conf.getint("video","yres"))
+        size = (ResourceManager.getConfig().getint("video","xres"), ResourceManager.getConfig().getint("video","yres"))
         self.box = pygame.Rect(self.pos, size)
         print("Camera area:" + str(self.box))
         self.bounding =  self.box.scale_by(0.5, 0.5)

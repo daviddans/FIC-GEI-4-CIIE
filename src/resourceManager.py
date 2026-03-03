@@ -5,7 +5,6 @@ import objects
 import components
 import os
 import json
-from utils import conf
 from configparser import ConfigParser
 class ResourceManager:
     _resources = {}
@@ -16,7 +15,7 @@ class ResourceManager:
         if name not in cls._resources:
                 image, cood = cls._read_Atlas(name)
                 atlas = components.Atlas(image, cood)
-                cls._register(name, atlas)
+                cls._resources[name] = atlas
                 return atlas
         else:
             return cls._resources[name]
@@ -25,7 +24,7 @@ class ResourceManager:
     def getSound(cls, name):
         if name not in cls._resources:
             sound = cls._read_Sound(name)
-            cls._register(name, sound)
+            cls._resources[name] = sound
             return sound
         else:
             return cls._resources[name]
@@ -34,14 +33,14 @@ class ResourceManager:
     def getConfig(cls):
         if "config" not in cls._resources:
             config = cls._read_Config()
-            cls._register("config", config)
+            cls._resources["config"] = config
             return config
         else:
             return cls._resources["config"]
         
     #Cargar archivos que componen un atlas.
     def _read_Atlas(name):
-        base_path = conf.get("engine", "assets_path")
+        base_path = ResourceManager.getConfig().get("engine", "assets_path")
         full_path = os.path.join(base_path, name)
         image = None
         cood = None
@@ -67,7 +66,7 @@ class ResourceManager:
     
     #Cargar archivos de sonido
     def _read_Sound(name):
-        base_path = conf.get("engine", "assets_path")
+        base_path = ResourceManager.getConfig().get("engine", "assets_path")
         full_path = os.path.join(base_path, name)
         extensions = ['.wav', '.ogg', '.mp3']
         for ext in extensions:

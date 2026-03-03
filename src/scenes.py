@@ -7,12 +7,16 @@ import objects
 import abstract
 import audio
 import utils
+from resourceManager import ResourceManager
+
+
 
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         self.player = player.Player()
-        self.bg = pygame.image.load(utils.conf.get("engine","assets_path") + "background.png")
+        config = ResourceManager.getConfig()
+        self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
         #Order is important. Creates camera, creates empty group, add sprites to the group. adds group to the camera listeners, then sets player as reference obj 
         self.camera = objects.Camera()
         self.testGroup = pygame.sprite.Group()
