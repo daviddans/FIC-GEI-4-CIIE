@@ -3,6 +3,7 @@ import abstract
 import objects
 import utils
 import json
+import os
 
 """
 Class to load a full spritesheet ( atlas ) and give subsurface to be used 
@@ -153,3 +154,4 @@ class Button(abstract.Object):
     
     def draw(self, screen):
         screen.blit(self.img, (self.rect.x, self.rect.y))
+
