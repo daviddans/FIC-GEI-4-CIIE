@@ -6,9 +6,11 @@ import components
 import os
 import json
 from configparser import ConfigParser
-class ResourceManager:
-    _resources = {}
+from pytmx.util_pygame import load_pygame
 
+class ResourceManager:
+    #Cache dictionary
+    _resources = {}
     #Gets an atlas component from cache or disk if it is not cached yet.
     @classmethod
     def getAtlas(cls, name):
@@ -19,7 +21,7 @@ class ResourceManager:
                 return atlas
         else:
             return cls._resources[name]
-        
+    #Gets a sound from cache or disk if it is not cached yet.
     @classmethod
     def getSound(cls, name):
         if name not in cls._resources:
@@ -28,7 +30,7 @@ class ResourceManager:
             return sound
         else:
             return cls._resources[name]
-    
+    #Gets the config parser from cache or disk if it is not cached yet.
     @classmethod
     def getConfig(cls):
         if "config" not in cls._resources:
@@ -37,7 +39,30 @@ class ResourceManager:
             return config
         else:
             return cls._resources["config"]
-        
+    #Gets a tilemap from cache or disk if it is not cached yet.
+    @classmethod
+    def getTileMap(cls, name):
+        if name not in cls._resources:
+            tmx = cls._read_TileMap(name)
+            cls._resources[name] = tmx
+            return tmx
+        else:
+            return cls._resources[name]
+
+
+    #Cargar un archivo tmx
+    def _read_TileMap(name):
+        base_path = ResourceManager.getConfig().get("engine", "assets_path")
+        full_path = os.path.join(base_path, name +".tmx")
+        if os.path.exists(full_path):
+            try:
+                tmx_data = load_pygame(full_path)
+                return tmx_data
+            except Exception as e:
+                print(f"Error loading tilemap '{full_path}': {e}")
+                raise e
+        return tmx_data
+    
     #Cargar archivos que componen un atlas.
     def _read_Atlas(name):
         base_path = ResourceManager.getConfig().get("engine", "assets_path")
@@ -87,6 +112,8 @@ class ResourceManager:
         except:
             raise FileNotFoundError("No se encuentra config.ini")
         return conf
+    
+
 """"
 ### Funciones antiguas de ale, las conservo de momento por si aca ###
     def get(cls, key):

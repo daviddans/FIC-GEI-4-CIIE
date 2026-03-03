@@ -1,4 +1,5 @@
 import pygame
+from pytmx import pytmx
 import abstract
 import components
 from random import randint
@@ -68,3 +69,18 @@ class Camera(abstract.Object):
     def draw(self, screen):
         for group in self.spriteGroups:
             group.draw(screen)
+
+class tileMap(abstract.Object):
+    def __init__(self, tmx, name="tilemap", pos=(0,0)):
+        super().__init__(name, pos)
+        ###De momento cargamos a mano tilese y map, pero podriamos considerar tener en un archivo que tilset usa cada mapa para poder cambiar todas las ocurrencias en un mismo sito
+        ###En caso de que se haga muy grande e inmanejable. 
+        self.tmx = ResourceManager.getTileMap(tmx)
+
+    def draw(self, screen):
+        for layer in self.tmx.visible_layers:
+            if isinstance(layer, pytmx.TiledTileLayer):
+                for x, y, gid in layer:
+                    tile = self.tmx.get_tile_image_by_gid(gid)
+                    if tile:
+                        screen.blit(tile, (x * self.tmx.tilewidth, y * self.tmx.tileheight))

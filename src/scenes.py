@@ -26,6 +26,7 @@ class TestScene(abstract.Scene):
         self.player.graphic.add(self.testGroup)
         self.camera.addGroup(self.testGroup)
         self.camera.setReference(self.player)
+        self.map = objects.tileMap("testMap")
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
@@ -41,8 +42,8 @@ class TestScene(abstract.Scene):
     def draw(self):
         screen = self.game.screen
         screen.blit(self.bg, (0,0))
+        self.map.draw(screen)
         self.camera.draw(screen)
-        pygame.display.update()
 
 class MainMenu(abstract.Scene):
     def __init__(self, game, name="unamed"):
