@@ -71,16 +71,74 @@ class Camera(abstract.Object):
             group.draw(screen)
 
 class tileMap(abstract.Object):
+    """An object representing a tiled map loaded from a TMX file.
+
+    The constructor pre-renders each visible tile layer into a surface and
+    then constructs a :class:`components.TileMap` sprite component that is used
+    for drawing.  The object itself holds the raw ``tmx`` data and a list of
+    layer surfaces in ``layers`` in case gameplay logic needs to inspect
+    individual layers later (for example, to build collision geometry).
+
+    The important behavioural change compared to the earlier implementation is
+    that ``tileMap.sprite`` now behaves just like the ``graphic`` or ``sprite``
+    components attached to other objects; it can be added to a
+    ``pygame.sprite.Group`` and will automatically receive ``update`` and
+    ``cameraUpdate`` calls as the camera moves.  A convenience helper
+    ``addToGroup()`` is provided for symmetry with ``components.Graphic``.
+    """
+
     def __init__(self, tmx, name="tilemap", pos=(0,0)):
         super().__init__(name, pos)
-        ###De momento cargamos a mano tilese y map, pero podriamos considerar tener en un archivo que tilset usa cada mapa para poder cambiar todas las ocurrencias en un mismo sito
-        ###En caso de que se haga muy grande e inmanejable. 
+        # load and cache the TMX data
         self.tmx = ResourceManager.getTileMap(tmx)
+        # render each layer into a surface and remember the list
+        self.layers = self._render_map()
+        # wrap the surfaces with a sprite component so the map can be
+        # added to sprite groups just like any other object graphic
+        self.sprite = components.TileMap(self, self.layers)
+        # provide the same convenience API as other objects: update the
+        # internal sprite when the map is updated and a helper to insert the
+        # map into groups.
 
-    def draw(self, screen):
-        for layer in self.tmx.visible_layers:
-            if isinstance(layer, pytmx.TiledTileLayer):
-                for x, y, gid in layer:
-                    tile = self.tmx.get_tile_image_by_gid(gid)
-                    if tile:
-                        screen.blit(tile, (x * self.tmx.tilewidth, y * self.tmx.tileheight))
+    def update(self, dt):
+        # forward to the sprite component so camera offsets are applied
+        self.sprite.update(dt)
+
+    def addToGroup(self, group: pygame.sprite.Group):
+        """Shortcut for ``group.add(self.sprite)``; mirrors the behaviour
+        of :class:`components.Graphic.add` when you call
+        ``some_object.graphic.add(group)``.
+        """
+        group.add(self.sprite)
+
+    # Predenderizamos el mapa completo y lo envolvemos en nuestra clase grafica
+    def _render_map(self):
+            # Creamos superficies del tamaño total del mapa (sin escala) para
+            # optimizar; aplicaremos el escalado global de una sola vez al
+            # final, igual que hacemos en Atlas.
+            width = self.tmx.width * self.tmx.tilewidth
+            height = self.tmx.height * self.tmx.tileheight
+            layers = []
+
+            for layer in self.tmx.visible_layers:
+                if isinstance(layer, pytmx.TiledTileLayer):
+                    temp_surf = pygame.Surface((width, height), pygame.SRCALPHA)
+                    for x, y, gid in layer:
+                        tile = self.tmx.get_tile_image_by_gid(gid)
+                        if tile:
+                            temp_surf.blit(tile, (x * self.tmx.tilewidth,
+                                                   y * self.tmx.tileheight))
+                    layers.append(temp_surf)
+
+            # ahora aplicamos la escala global a cada capa de una sola vez
+            scale = ResourceManager.getConfig().getint("video", "scale")
+            if scale != 1:
+                scaled = []
+                for layer in layers:
+                    new_size = (layer.get_width() * scale,
+                                layer.get_height() * scale)
+                    scaled.append(pygame.transform.scale(layer, new_size))
+                return scaled
+
+            return layers
+

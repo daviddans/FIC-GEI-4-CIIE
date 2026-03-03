@@ -99,6 +99,47 @@ class Graphic(pygame.sprite.Sprite):
     def cameraUpdate(self, pos):
         self.camera_pos = pos
 
+class TileMap(pygame.sprite.Sprite):
+    """Component that wraps one or more pre-rendered map-layer surfaces into a
+    sprite.  The map is treated much like a static graphic: it updates its
+    position based on its parent object and the current camera, and can be
+    added to sprite groups the same way a :class:`Graphic` can.  Internally the
+    individual layer surfaces produced by :class:`objects.tileMap` are
+    composited together in draw order.
+
+    The constructor expects the parent object (normally an :class:`objects.tileMap`
+    instance) and a list of ``pygame.Surface`` objects representing the layers.
+    """
+
+    def __init__(self, parent:abstract.Object, layers: list):
+        super().__init__()
+        self.parent = parent
+        self.layers = layers
+        # build a single surface containing every layer in order so that the map
+        # can be treated as a single sprite.  keep the original list around in
+        # case other systems need access to individual layers later.
+        if layers:
+            width = max(layer.get_width() for layer in layers)
+            height = max(layer.get_height() for layer in layers)
+            self.image = pygame.Surface((width, height), pygame.SRCALPHA)
+            for layer in layers:
+                self.image.blit(layer, (0, 0))
+        else:
+            self.image = pygame.Surface((0, 0), pygame.SRCALPHA)
+        self.rect = self.image.get_rect(topleft=parent.pos)
+        self.camera_pos = (0, 0)
+
+    def update(self, dt):
+        # move the rendered map according to its parent position and the
+        # current camera offset; identical logic to :class:`Graphic`.
+        pos = (self.parent.pos[0] - self.camera_pos[0],
+               self.parent.pos[1] - self.camera_pos[1])
+        self.rect.topleft = pos
+
+    def cameraUpdate(self, pos):
+        self.camera_pos = pos
+
+
 #Button may not be an component but a object instead consider refactor
 class Button(abstract.Object):
     def __init__(self, img, x=0, y=0, scale=1):

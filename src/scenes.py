@@ -20,13 +20,18 @@ class TestScene(abstract.Scene):
         #Order is important. Creates camera, creates empty group, add sprites to the group. adds group to the camera listeners, then sets player as reference obj 
         self.camera = objects.Camera()
         self.testGroup = pygame.sprite.Group()
+        self.map = objects.tileMap("testMap")
+        # the tileMap now exposes a ``sprite`` component so it can be
+        # inserted into a sprite group just like any other graphic object.
+        # adding the map first ensures it will be drawn behind the trees/player.
+        self.map.sprite.add(self.testGroup)
         for i in range(0,10):
             tree = objects.testTree()
             tree.sprite.add(self.testGroup)
         self.player.graphic.add(self.testGroup)
         self.camera.addGroup(self.testGroup)
         self.camera.setReference(self.player)
-        self.map = objects.tileMap("testMap")
+        
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
@@ -42,7 +47,6 @@ class TestScene(abstract.Scene):
     def draw(self):
         screen = self.game.screen
         screen.blit(self.bg, (0,0))
-        self.map.draw(screen)
         self.camera.draw(screen)
 
 class MainMenu(abstract.Scene):
