@@ -14,24 +14,9 @@ class Atlas():
 
     _cached_data = {} # dict para que queden los json cargados en memoria
 
-    def __init__(self, sheetName):
-        base_path = utils.conf.get("engine", "assets_path")
-        self.atlas = pygame.image.load(base_path + sheetName)
-
-        json_name = sheetName.replace(".png", ".json")
-        json_path = base_path + json_name
-
-        if json_name not in Atlas._cached_data:
-            try:
-                with open(json_path, 'r') as f:
-                    Atlas._cached_data[json_name] = json.load(f)
-            except FileNotFoundError:
-                print(f"Error: No se encontró el archivo {json_path}")
-                Atlas._cached_data[json_name] = {}
-
-        self.coordinates = Atlas._cached_data[json_name]
-        self.key = sheetName.replace(".png", "") 
-        
+    def __init__(self, image, coords):
+        self.atlas = image
+        self.coordinates = coords
         size = self.atlas.get_size()
         self.scale = utils.conf.getint("video", "scale")
         self.atlas = pygame.transform.scale(self.atlas,(size[0]*self.scale, size[1]*self.scale))
