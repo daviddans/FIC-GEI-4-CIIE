@@ -21,11 +21,15 @@ class TestScene(abstract.Scene):
 
     def update(self, dt):
         self.player.update(dt)
-
+        #this duplicates updates calls so we sould either update individually each object and then the object updates its sprite
+        # or we separate the state of the object from the sprite, and update all sprites before draw
+        self.testGroup.update(dt)
+        self.camera.update(dt)
+        
     def draw(self):
         screen = self.game.screen
-        screen.blit(self.bg)
-        self.player.draw(screen)
+        screen.blit(self.bg, (0,0))
+        self.camera.draw(screen)
         pygame.display.update()
 
 class MainMenu(abstract.Scene):
