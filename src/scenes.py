@@ -13,6 +13,15 @@ class TestScene(abstract.Scene):
         super().__init__(game, name)
         self.player = player.Player()
         self.bg = pygame.image.load(utils.conf.get("engine","assets_path") + "background.png")
+        #Order is important. Creates camera, creates empty group, add sprites to the group. adds group to the camera listeners, then sets player as reference obj 
+        self.camera = objects.Camera()
+        self.testGroup = pygame.sprite.Group()
+        for i in range(0,10):
+            tree = objects.testTree()
+            tree.sprite.add(self.testGroup)
+        self.player.graphic.add(self.testGroup)
+        self.camera.addGroup(self.testGroup)
+        self.camera.setReference(self.player)
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
@@ -20,11 +29,15 @@ class TestScene(abstract.Scene):
 
     def update(self, dt):
         self.player.update(dt)
-
+        #this duplicates updates calls so we sould either update individually each object and then the object updates its sprite
+        # or we separate the state of the object from the sprite, and update all sprites before draw
+        self.testGroup.update(dt)
+        self.camera.update(dt)
+        
     def draw(self):
         screen = self.game.screen
-        screen.blit(self.bg)
-        self.player.draw(screen)
+        screen.blit(self.bg, (0,0))
+        self.camera.draw(screen)
         pygame.display.update()
 
 class MainMenu(abstract.Scene):
@@ -32,7 +45,7 @@ class MainMenu(abstract.Scene):
         super().__init__(game, name)
         self.audio = audio.SoundManager()
         self.audio.load_music("musiquita.mp3")
-        self.audio.load_sound("pum", "choque.mp3")
+        self.audio.load_sound("pum", "choque.mp3")    
         self.audio.play_music()
         text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
         self.playButton = components.Button(text, 100, 100, 3)

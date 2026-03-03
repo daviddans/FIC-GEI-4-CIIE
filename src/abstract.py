@@ -21,12 +21,12 @@ class Scene:
     
     def draw(self):
         raise NotImplementedError("Scene: " + self.name + ". Draw method not found, must be given an implementation.\n")
-
+# z_layer attribute may be deprecated as the blit order will now be handled by sprites and groups
 class Object:
-    def __init__(self, name="unamed", z_layer = 99):
+    def __init__(self, name="unamed", pos = (0,0)):
         self.name = name
-        self.z_layer = z_layer
-
+        self.pos = pos
+  
     def update(self, dt):
         raise NotImplementedError("Object: " + self.name + ". Update method not found, must be given an implementation.\n")
     
