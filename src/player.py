@@ -10,34 +10,24 @@ class Player(abstract.Object):
     def __init__(self):
         super().__init__("player", 1)
         self.pos = (0,0)
-        self.atlas = ResourceManager.getAtlas("player-base")
-        self.graphic = components.Graphic(self, self.atlas, True)
-        self.graphic.addName("idle", 0, 2)
-        self.graphic.set("idle")
+        self.rect = pygame.Rect()
+        self.rect.topleft = self.pos
 
-    def input(self):
-        keys = pygame.key.get_pressed()
-        vector = (0,0)
-        if keys[pygame.K_w]:
-            vector = (0,-1)
-        if keys[pygame.K_s]:
-            vector = (0,1)
-        if keys[pygame.K_a]:
-            vector = (-1,0) 
-        if keys[pygame.K_d]:
-            vector = (1,0)
-        return vector
+        self.sprite = components.Grapics(self.rect)
+        self.sprite.addAnimation("first", "player-base.png")
+        self.sprite.playAnimation("first")
+        self.input = components.Input(self)
+        self.move = components.Movement(self, speed=300)
+        self.sprite.update(0)
 
-    def move(self, vector):
-        self.pos = (self.pos[0]+vector[0], self.pos[1]+vector[1])
-        
     def collide(self):
         pass
 
     def update(self, dt):
-        vector = self.input()
-        vector = (vector[0]* dt, vector[1]*dt)
-        self.move(vector)
+        self.input.update()
+        vector = self.input.get_vector()
+        self.move.update(vector, dt)
+        self.sprite.update(dt)
 
     def events(self):
         pass
