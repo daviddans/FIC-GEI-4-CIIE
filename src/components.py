@@ -177,11 +177,3 @@ class Movement():
      
     def update(self, vector, dt):
         self.parent.pos = (self.parent.pos[0] + vector[0] * self.speed * dt, self.parent.pos[1] + vector[1] * self.speed * dt)   
-
-class Colision():   
-    def __init__(self, parent:abstract.Object):
-        self.parent = parent
-
-    def update(self):
-        #Checks if the parent is colliding
-        pass

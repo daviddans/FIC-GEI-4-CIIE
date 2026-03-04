@@ -14,7 +14,7 @@ from resourceManager import ResourceManager
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
-        self.player = player.Player()
+        self.player = player.Player((100,100))
         config = ResourceManager.getConfig()
         self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
         self.camera = objects.Camera()
@@ -35,13 +35,16 @@ class TestScene(abstract.Scene):
 
     def update(self, dt):
         self.player.update(dt)
-        self.testGroup.update(dt)
         self.camera.update(dt)
+        self.testGroup.update(dt)
+        
         
     def draw(self):
         screen = self.game.screen
         screen.blit(self.bg, (0,0))
         self.camera.draw(screen)
+
+    
 
 class MainMenu(abstract.Scene):
     def __init__(self, game, name="unamed"):
