@@ -1,4 +1,5 @@
 import pygame
+from pytmx import pytmx
 import abstract
 import components
 from random import randint
@@ -68,3 +69,48 @@ class Camera(abstract.Object):
     def draw(self, screen):
         for group in self.spriteGroups:
             group.draw(screen)
+
+class tileMap(abstract.Object):
+
+    def __init__(self, tmx, name="tilemap", pos=(0,0)):
+        super().__init__(name, pos)
+        # load and cache the TMX data
+        self.tmx = ResourceManager.getTileMap(tmx)
+        layers = self._render_map()
+        self.sprite = components.Tile(self, layers)
+
+    def update(self, dt):
+        # forward to the sprite component so camera offsets are applied
+        self.sprite.update(dt)
+
+    # Predenderizamos el mapa completo y lo envolvemos en nuestra clase grafica
+    def _render_map(self):
+            # Creamos superficies del tamaño total del mapa (sin escala) para
+            # optimizar; aplicaremos el escalado global de una sola vez al
+            # final, igual que hacemos en Atlas.
+            width = self.tmx.width * self.tmx.tilewidth
+            height = self.tmx.height * self.tmx.tileheight
+            layers = []
+
+            for layer in self.tmx.visible_layers:
+                if isinstance(layer, pytmx.TiledTileLayer):
+                    temp_surf = pygame.Surface((width, height), pygame.SRCALPHA)
+                    for x, y, gid in layer:
+                        tile = self.tmx.get_tile_image_by_gid(gid)
+                        if tile:
+                            temp_surf.blit(tile, (x * self.tmx.tilewidth,
+                                                   y * self.tmx.tileheight))
+                    layers.append(temp_surf)
+
+            # ahora aplicamos la escala global a cada capa de una sola vez
+            scale = ResourceManager.getConfig().getint("video", "scale")
+            if scale != 1:
+                scaled = []
+                for layer in layers:
+                    new_size = (layer.get_width() * scale,
+                                layer.get_height() * scale)
+                    scaled.append(pygame.transform.scale(layer, new_size))
+                return scaled
+
+            return layers
+

@@ -25,6 +25,7 @@ class Game:
             scene.events(pygame.event.get())
             scene.update(dt)
             scene.draw()
+            pygame.display.update()
 
     def run(self):
         while (len(self.sceneStack) > 0):
