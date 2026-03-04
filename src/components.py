@@ -154,8 +154,8 @@ class Button(abstract.Object):
         screen.blit(self.img, (self.rect.x, self.rect.y))
 
 class Input():
-    def __init__(self,entity):
-        self.entity = entity
+    def __init__(self,parent:abstract.Object):
+        self.parent = parent
         self.direction = pygame.Vector2(0, 0)
 
     def get_vector(self):
@@ -171,10 +171,17 @@ class Input():
             self.direction = self.direction.normalize()
 
 class Movement():
-    def __init__(self, entity, speed):
-        self.entity = entity
+    def __init__(self, parent:abstract.Object, speed):
+        self.parent = parent
         self.speed = speed
      
     def update(self, vector, dt):
-        self.entity.pos = (self.entity.pos[0] + vector[0] * self.speed * dt, self.entity.pos[1] + vector[1] * self.speed * dt)
-        self.entity.rect.topleft = self.entity.pos       
+        self.parent.pos = (self.parent.pos[0] + vector[0] * self.speed * dt, self.parent.pos[1] + vector[1] * self.speed * dt)   
+
+class Colision():   
+    def __init__(self, parent:abstract.Object):
+        self.parent = parent
+
+    def update(self):
+        #Checks if the parent is colliding
+        pass

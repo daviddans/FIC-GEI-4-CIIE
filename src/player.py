@@ -9,25 +9,21 @@ from resourceManager import ResourceManager
 class Player(abstract.Object):
     def __init__(self):
         super().__init__("player", 1)
-        self.pos = (0,0)
-        self.rect = pygame.Rect()
-        self.rect.topleft = self.pos
 
-        self.sprite = components.Grapics(self.rect)
-        self.sprite.addAnimation("first", "player-base.png")
-        self.sprite.playAnimation("first")
+        self.pos = (0,0)
+        self.atlas = ResourceManager.getAtlas("player-base")
+        self.graphic = components.Graphic(self, self.atlas, True)
+        self.graphic.addName("idle", 0, 2)
+        self.graphic.set("idle")
         self.input = components.Input(self)
-        self.move = components.Movement(self, speed=300)
-        self.sprite.update(0)
+        self.move = components.Movement(self, speed=1)
 
     def collide(self):
         pass
 
     def update(self, dt):
         self.input.update()
-        vector = self.input.get_vector()
-        self.move.update(vector, dt)
-        self.sprite.update(dt)
+        self.move.update(self.input.get_vector(), dt)
 
     def events(self):
         pass
