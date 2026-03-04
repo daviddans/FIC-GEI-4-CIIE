@@ -99,18 +99,8 @@ class Graphic(pygame.sprite.Sprite):
     def cameraUpdate(self, pos):
         self.camera_pos = pos
 
-class TileMap(pygame.sprite.Sprite):
-    """Component that wraps one or more pre-rendered map-layer surfaces into a
-    sprite.  The map is treated much like a static graphic: it updates its
-    position based on its parent object and the current camera, and can be
-    added to sprite groups the same way a :class:`Graphic` can.  Internally the
-    individual layer surfaces produced by :class:`objects.tileMap` are
-    composited together in draw order.
-
-    The constructor expects the parent object (normally an :class:`objects.tileMap`
-    instance) and a list of ``pygame.Surface`` objects representing the layers.
-    """
-
+#Wrapper to make the surface in the tilemap behave like a sprite, so we can use the same camera logic for the map and the objects
+class Tile(pygame.sprite.Sprite):
     def __init__(self, parent:abstract.Object, layers: list):
         super().__init__()
         self.parent = parent
@@ -130,8 +120,6 @@ class TileMap(pygame.sprite.Sprite):
         self.camera_pos = (0, 0)
 
     def update(self, dt):
-        # move the rendered map according to its parent position and the
-        # current camera offset; identical logic to :class:`Graphic`.
         pos = (self.parent.pos[0] - self.camera_pos[0],
                self.parent.pos[1] - self.camera_pos[1])
         self.rect.topleft = pos

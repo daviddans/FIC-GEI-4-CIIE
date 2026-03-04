@@ -17,13 +17,9 @@ class TestScene(abstract.Scene):
         self.player = player.Player()
         config = ResourceManager.getConfig()
         self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
-        #Order is important. Creates camera, creates empty group, add sprites to the group. adds group to the camera listeners, then sets player as reference obj 
         self.camera = objects.Camera()
         self.testGroup = pygame.sprite.Group()
         self.map = objects.tileMap("testMap")
-        # the tileMap now exposes a ``sprite`` component so it can be
-        # inserted into a sprite group just like any other graphic object.
-        # adding the map first ensures it will be drawn behind the trees/player.
         self.map.sprite.add(self.testGroup)
         for i in range(0,10):
             tree = objects.testTree()
@@ -39,8 +35,6 @@ class TestScene(abstract.Scene):
 
     def update(self, dt):
         self.player.update(dt)
-        #this duplicates updates calls so we sould either update individually each object and then the object updates its sprite
-        # or we separate the state of the object from the sprite, and update all sprites before draw
         self.testGroup.update(dt)
         self.camera.update(dt)
         

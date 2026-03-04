@@ -71,45 +71,17 @@ class Camera(abstract.Object):
             group.draw(screen)
 
 class tileMap(abstract.Object):
-    """An object representing a tiled map loaded from a TMX file.
-
-    The constructor pre-renders each visible tile layer into a surface and
-    then constructs a :class:`components.TileMap` sprite component that is used
-    for drawing.  The object itself holds the raw ``tmx`` data and a list of
-    layer surfaces in ``layers`` in case gameplay logic needs to inspect
-    individual layers later (for example, to build collision geometry).
-
-    The important behavioural change compared to the earlier implementation is
-    that ``tileMap.sprite`` now behaves just like the ``graphic`` or ``sprite``
-    components attached to other objects; it can be added to a
-    ``pygame.sprite.Group`` and will automatically receive ``update`` and
-    ``cameraUpdate`` calls as the camera moves.  A convenience helper
-    ``addToGroup()`` is provided for symmetry with ``components.Graphic``.
-    """
 
     def __init__(self, tmx, name="tilemap", pos=(0,0)):
         super().__init__(name, pos)
         # load and cache the TMX data
         self.tmx = ResourceManager.getTileMap(tmx)
-        # render each layer into a surface and remember the list
-        self.layers = self._render_map()
-        # wrap the surfaces with a sprite component so the map can be
-        # added to sprite groups just like any other object graphic
-        self.sprite = components.TileMap(self, self.layers)
-        # provide the same convenience API as other objects: update the
-        # internal sprite when the map is updated and a helper to insert the
-        # map into groups.
+        layers = self._render_map()
+        self.sprite = components.Tile(self, layers)
 
     def update(self, dt):
         # forward to the sprite component so camera offsets are applied
         self.sprite.update(dt)
-
-    def addToGroup(self, group: pygame.sprite.Group):
-        """Shortcut for ``group.add(self.sprite)``; mirrors the behaviour
-        of :class:`components.Graphic.add` when you call
-        ``some_object.graphic.add(group)``.
-        """
-        group.add(self.sprite)
 
     # Predenderizamos el mapa completo y lo envolvemos en nuestra clase grafica
     def _render_map(self):
