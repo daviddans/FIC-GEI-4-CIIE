@@ -7,12 +7,27 @@ import objects
 import abstract
 import audio
 import utils
+from resourceManager import ResourceManager
+
+
 
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         self.player = player.Player()
-        self.bg = pygame.image.load(utils.conf.get("engine","assets_path") + "background.png")
+        config = ResourceManager.getConfig()
+        self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
+        self.camera = objects.Camera()
+        self.testGroup = pygame.sprite.Group()
+        self.map = objects.tileMap("testMap")
+        self.map.sprite.add(self.testGroup)
+        for i in range(0,10):
+            tree = objects.testTree()
+            tree.sprite.add(self.testGroup)
+        self.player.graphic.add(self.testGroup)
+        self.camera.addGroup(self.testGroup)
+        self.camera.setReference(self.player)
+        
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
@@ -20,19 +35,20 @@ class TestScene(abstract.Scene):
 
     def update(self, dt):
         self.player.update(dt)
-
+        self.testGroup.update(dt)
+        self.camera.update(dt)
+        
     def draw(self):
         screen = self.game.screen
-        screen.blit(self.bg)
-        self.player.draw(screen)
-        pygame.display.update()
+        screen.blit(self.bg, (0,0))
+        self.camera.draw(screen)
 
 class MainMenu(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         self.audio = audio.SoundManager()
         self.audio.load_music("musiquita.mp3")
-        self.audio.load_sound("pum", "choque.mp3")
+        self.audio.load_sound("pum", "choque.mp3")    
         self.audio.play_music()
         text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
         self.playButton = components.Button(text, 100, 100, 3)

@@ -1,42 +1,134 @@
 import pygame
 import abstract
-import utils
+import objects
+import json
+from resourceManager import ResourceManager
+"""
+Class to load a full spritesheet ( atlas ) and give subsurface to be used 
+
+"""
+class Atlas():
+    def __init__(self, image, coords):
+        self.atlas = image
+        self.coordinates = coords
+        size = self.atlas.get_size()
+        self.scale = ResourceManager.getConfig().getint("video", "scale")
+        self.atlas = pygame.transform.scale(self.atlas,(size[0]*self.scale, size[1]*self.scale))
+        
+    def getSprite(self, id):
+        info = self.coordinates.get(str(id))
+
+        if not info:
+            print(f"Error: ID {id} no encontrado en la seccion {self.key}")
+            #Si no existe que recorte por defecto 16x16 para que no pete el juego basicamente
+            return pygame.Surface((16 * self.scale, 16 * self.scale))
+        
+        x = info["x"]
+        y = info["y"]
+        w = info["w"]
+        h = info["h"]
+        
+        location = pygame.Rect(x * self.scale, y * self.scale, w * self.scale, h * self.scale)
+        
+        return self.atlas.subsurface(location)
+
+"""
+Component for displaying sprites. 
+    ·Atributtes:
+        -Animate:bool -> true is animation, false is a static sprite
+        -Parent:abstract.Object -> Object that has an instance of this component
+        -Atlas:component.Atlas -> Atlas to retrieve the surfaces
+        -Current:int -> Id of the current sprite to show
+        -Names:dict -> Dictionary to store the ids on the atlas related to a name. This way we can play a animation "walk", previously defined instead of play an animation (12, 18) 
+    ·Methods:
+        -AddName(name, begin, end) -> Set a internal name for a static image or animation, an animation
+        will cycle between begin and end id images, for a static image, end will be ignored
+        -Set(name) -> Set the ids related to the name given as the current to display
+        -Set_id(begin, end)-> Set ids to show related to its atlas. For static sprite begin will used. For animation frame will cicle betwen begin and end
+"""
 
 
-
-class Grapics(pygame.sprite.Sprite):
-    def __init__(self, rectangle):
-        self.animations = dict()
-        self.playing = False
-        self.frame = 0
-        self.idle = None
-        self.current = None
-        self.rect = rectangle
-        self.image = None
-
-    def addAnimation(self, name, file_name):
-        sprites = utils.sliceAtlas(file_name)
-        self.animations.update({name : sprites})
-    
-    def setIdle(self, name):
-        self.idle = self.animations[name]
-
-    def playAnimation(self, name):
-        if not self.playing :
-            self.current = self.animations[name]
-            self.playing = True
-    
-    def update(self, dt):
-        self.frame += 1
-        if self.frame >= len(self.current):
+class Graphic(pygame.sprite.Sprite):
+    def __init__(self, parent:abstract.Object, atlas:Atlas, animate:bool, speed:int = 1000):
+        super().__init__()
+        self.animate = animate
+        self.parent = parent
+        self.atlas = atlas
+        self.current = (0,0)
+        if animate :
             self.frame = 0
-        self.image = self.current[self.frame]
+            self.time_elapsed = 0
+            self.time_animation = speed
+        self.names = dict()
+        self.image = None
+        self.rect = None
+        self.camera_pos = (0,0)
+        
+    def addName(self, name, begin, end):
+        self.names.update({name : (begin, end)})
 
-    def draw(self, screen):
-        if self.image != None:
-            screen.blit(self.image ,self.rect)
+    def set(self, name):
+        self.set_id(self.names[name][0], self.names[name][1])
+
+    def set_id(self, begin, end):
+        self.current = (begin, end)
+        self.image = self.atlas.getSprite(begin)
+        self.rect = self.image.get_rect()
+        self.rect.topleft = self.parent.pos
+        if self.animate:
+            self.frame = begin
+
+    def nextFrame(self):
+        if self.animate :
+            self.frame = (self.frame + 1) % (self.current[1] - self.current[0]) 
+            self.frame += self.current[0]
+            self.image = self.atlas.getSprite(self.frame)
+            self.rect = self.image.get_rect()
+
+    def update(self, dt):
+        if self.animate :
+            self.time_elapsed += dt 
+            if self.time_elapsed >= self.time_animation:
+                self.nextFrame()
+                self.time_elapsed = 0
+        else:
+            pass
+        pos = (self.parent.pos[0] - self.camera_pos[0], self.parent.pos[1] - self.camera_pos[1])
+        self.rect.topleft = pos
+
+    def cameraUpdate(self, pos):
+        self.camera_pos = pos
+
+#Wrapper to make the surface in the tilemap behave like a sprite, so we can use the same camera logic for the map and the objects
+class Tile(pygame.sprite.Sprite):
+    def __init__(self, parent:abstract.Object, layers: list):
+        super().__init__()
+        self.parent = parent
+        self.layers = layers
+        # build a single surface containing every layer in order so that the map
+        # can be treated as a single sprite.  keep the original list around in
+        # case other systems need access to individual layers later.
+        if layers:
+            width = max(layer.get_width() for layer in layers)
+            height = max(layer.get_height() for layer in layers)
+            self.image = pygame.Surface((width, height), pygame.SRCALPHA)
+            for layer in layers:
+                self.image.blit(layer, (0, 0))
+        else:
+            self.image = pygame.Surface((0, 0), pygame.SRCALPHA)
+        self.rect = self.image.get_rect(topleft=parent.pos)
+        self.camera_pos = (0, 0)
+
+    def update(self, dt):
+        pos = (self.parent.pos[0] - self.camera_pos[0],
+               self.parent.pos[1] - self.camera_pos[1])
+        self.rect.topleft = pos
+
+    def cameraUpdate(self, pos):
+        self.camera_pos = pos
 
 
+#Button may not be an component but a object instead consider refactor
 class Button(abstract.Object):
     def __init__(self, img, x=0, y=0, scale=1):
         super().__init__("button",0)

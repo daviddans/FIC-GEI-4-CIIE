@@ -2,6 +2,9 @@ import pygame
 import abstract
 import components
 import math
+import utils
+import objects
+from resourceManager import ResourceManager
 
 class Player(abstract.Object):
     def __init__(self):
@@ -28,6 +31,3 @@ class Player(abstract.Object):
 
     def events(self):
         pass
-
-    def draw(self, screen):
-        self.sprite.draw(screen)

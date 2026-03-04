@@ -1,7 +1,7 @@
 import pygame
 import os
 from configparser import ConfigParser
-import utils
+from resourceManager import ResourceManager
 
 class SoundManager:
     def __init__(self):
@@ -10,7 +10,7 @@ class SoundManager:
         pygame.mixer.init()
         self.sounds = {}
         self.music_loaded = None
-        self.config = utils.conf
+        self.config = ResourceManager.getConfig()
 
    # ---------------------- SONIDOS ---------------------------------------------------------------
 
