@@ -55,10 +55,10 @@ class Graphic(pygame.sprite.Sprite):
         self.parent = parent
         self.atlas = atlas
         self.current = (0,0)
-        if animate :
-            self.frame = 0
-            self.time_elapsed = 0
-            self.time_animation = speed
+        self.frame = 0
+        #if animate:   lo comento porque petaba con la puerta
+        self.time_elapsed = 0
+        self.time_animation = speed
         self.names = dict()
         self.image = None
         self.rect = None
@@ -79,11 +79,16 @@ class Graphic(pygame.sprite.Sprite):
             self.frame = begin
 
     def nextFrame(self):
-        if self.animate :
-            self.frame = (self.frame + 1) % (self.current[1] - self.current[0]) 
-            self.frame += self.current[0]
+     if self.animate:
+        # Si aún no hemos llegado al último frame del rango (ej. el 3)
+        if self.frame < self.current[1]:
+            self.frame += 1
             self.image = self.atlas.getSprite(self.frame)
             self.rect = self.image.get_rect()
+        else:
+            # Si ya llegamos al final, apagamos la animación para que se quede abierta
+            self.animate = False 
+            # Opcional: print("Animación finalizada en frame:", self.frame)
 
     def update(self, dt):
         if self.animate :
@@ -160,13 +165,24 @@ class Input():
 
     def get_vector(self):
         return self.direction
-    #habra que generalizar el update cuando hagamos la logica de los npcs
+
+   
     def update(self):
-        keys = pygame.key.get_pressed()
-        x = keys[pygame.K_d] - keys[pygame.K_a]
-        y = keys[pygame.K_s] - keys[pygame.K_w]
+        #esto es un poco sucio porque fuerza a pygame a actualizar su estado, hay que revisar como hacerlo bien porque no se mueve el player si no
+        pygame.event.pump() 
         
-        self.direction.update(x,y)
+        keys = pygame.key.get_pressed()
+        
+        x = 0
+        y = 0
+        if keys[pygame.K_d] or keys[pygame.K_RIGHT]: x += 1
+        if keys[pygame.K_a] or keys[pygame.K_LEFT]:  x -= 1
+        if keys[pygame.K_s] or keys[pygame.K_DOWN]:  y += 1
+        if keys[pygame.K_w] or keys[pygame.K_UP]:    y -= 1
+        
+        self.direction.x = x
+        self.direction.y = y
+        
         if self.direction.length() > 0:
             self.direction = self.direction.normalize()
 
@@ -175,8 +191,16 @@ class Movement():
         self.parent = parent
         self.speed = speed
      
+    # En components.py -> Clase Movement
     def update(self, vector, dt):
-        self.parent.pos = (self.parent.pos[0] + vector[0] * self.speed * dt, self.parent.pos[1] + vector[1] * self.speed * dt)   
+    # Convertimos dt a SEGUNDOS (porque speed es px/seg)
+     dt_seg = dt / 1000.0
+    
+    # Calculamos el desplazamiento
+     if vector.length() > 0:
+        new_x = self.parent.pos[0] + (vector.x * self.speed * dt_seg)
+        new_y = self.parent.pos[1] + (vector.y * self.speed * dt_seg)
+        self.parent.pos = (new_x, new_y)
 
 class Colision():   
     def __init__(self, parent:abstract.Object):

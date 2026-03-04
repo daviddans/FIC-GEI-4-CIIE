@@ -16,7 +16,7 @@ class Player(abstract.Object):
         self.graphic.addName("idle", 0, 2)
         self.graphic.set("idle")
         self.input = components.Input(self)
-        self.move = components.Movement(self, speed=1)
+        self.move = components.Movement(self, speed=200)
 
     def collide(self):
         pass
@@ -24,6 +24,7 @@ class Player(abstract.Object):
     def update(self, dt):
         self.input.update()
         self.move.update(self.input.get_vector(), dt)
+        print(f"DEBUG PLAYER: {self.pos}")
 
     def events(self):
         pass
