@@ -160,7 +160,7 @@ class Input():
 
     def get_vector(self):
         return self.direction
-    #habra que generalizar el update cuando hagamos la logica de los npcs
+    
     def update(self):
         keys = pygame.key.get_pressed()
         x = keys[pygame.K_d] - keys[pygame.K_a]
@@ -175,5 +175,21 @@ class Movement():
         self.parent = parent
         self.speed = speed
      
-    def update(self, vector, dt):
-        self.parent.pos = (self.parent.pos[0] + vector[0] * self.speed * dt, self.parent.pos[1] + vector[1] * self.speed * dt)   
+    def update(self, vector, dt, map):
+        target = (self.parent.pos[0] + vector[0] * self.speed * dt, self.parent.pos[1] + vector[1] * self.speed * dt)   
+        print(f"move target to: {target}")
+        if self.reachable(target[0], target[1], map):
+            self.parent.pos = target
+
+    #Comprobar si es una posicion alcanzable en una matriz de mapa
+    def reachable(self, x_pixel, y_pixel, matrix):
+        if matrix is None:
+            return True
+        tile_size = ResourceManager.getConfig().getint("engine", "tile_size")
+        scale = ResourceManager.getConfig().getint("video", "scale")
+        grid_x = int(x_pixel // (tile_size*scale))
+        grid_y = int(y_pixel // (tile_size*scale))
+        print(f"Grid reachability tested:({grid_x}, {grid_y})")
+        if 0 <= grid_x < len(matrix[0]) and 0 <= grid_y < len(matrix):
+            return matrix[grid_y][grid_x]
+        return False

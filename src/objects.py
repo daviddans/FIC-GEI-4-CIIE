@@ -78,8 +78,10 @@ class tileMap(abstract.Object):
         super().__init__(name, pos)
         # load and cache the TMX data
         self.tmx = ResourceManager.getTileMap(tmx)
+        self.reachable = [[]]
         layers = self._render_map()
         self.sprite = components.Tile(self, layers)
+        print(self.reachable)
 
     def update(self, dt):
         # forward to the sprite component so camera offsets are applied
@@ -90,23 +92,24 @@ class tileMap(abstract.Object):
             # Creamos superficies del tamaño total del mapa (sin escala) para
             # optimizar; aplicaremos el escalado global de una sola vez al
             # final, igual que hacemos en Atlas.
-            width = self.tmx.width * self.tmx.tilewidth
-            height = self.tmx.height * self.tmx.tileheight
+            tile_size = ResourceManager.getConfig().getint("engine", "tile_size")
+            width = self.tmx.width * tile_size
+            height = self.tmx.height * tile_size
             layers = []
-
+            self.reachable = [[0 for x in range(self.tmx.width)] for y in range(self.tmx.height)]
 
             for layer in self.tmx.layers:
                 if (isinstance(layer, pytmx.TiledTileLayer) and layer.visible):
-                    if layer.name == "reachable":
-                        pass
-                    else:
-                        temp_surf = pygame.Surface((width, height), pygame.SRCALPHA)
-                        for x, y, gid in layer:
-                            tile = self.tmx.get_tile_image_by_gid(gid)
-                            if tile:
-                                temp_surf.blit(tile, (x * self.tmx.tilewidth,
-                                                       y * self.tmx.tileheight))
-                        layers.append(temp_surf)
+                    temp_surf = pygame.Surface((width, height), pygame.SRCALPHA)
+                    for x, y, gid in layer:
+                        props = self.tmx.get_tile_properties_by_gid(gid)
+                        if props and props.get("reachable"):
+                            self.reachable[y][x] = 1
+                        tile = self.tmx.get_tile_image_by_gid(gid)
+                        if tile:
+                            temp_surf.blit(tile, (x * self.tmx.tilewidth,
+                                                   y * self.tmx.tileheight))
+                    layers.append(temp_surf)
 
             # ahora aplicamos la escala global a cada capa de una sola vez
             scale = ResourceManager.getConfig().getint("video", "scale")

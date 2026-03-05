@@ -14,9 +14,7 @@ from resourceManager import ResourceManager
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
-        self.player = player.Player((100,100))
-        config = ResourceManager.getConfig()
-        self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
+        self.player = player.Player((400,200))
         self.camera = objects.Camera()
         self.testGroup = pygame.sprite.Group()
         self.map = objects.tileMap("testMap")
@@ -34,14 +32,16 @@ class TestScene(abstract.Scene):
                 self.game.quitGame()
 
     def update(self, dt):
-        self.player.update(dt)
+        #Para actualizar el player necesitamos dt y el mapa de alcanzabilidad
+        self.player.update(dt, map=self.map.reachable)
         self.camera.update(dt)
         self.testGroup.update(dt)
         
         
     def draw(self):
         screen = self.game.screen
-        screen.blit(self.bg, (0,0))
+        screen.fill("black")
+        screen.fill("black")
         self.camera.draw(screen)
 
     
