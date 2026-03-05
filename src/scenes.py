@@ -16,8 +16,7 @@ class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         self.player = player.Player()
-        self.bg = pygame.image.load(utils.conf.get("engine","assets_path") + "background.png")
-    
+
         config = ResourceManager.getConfig()
         self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
         self.camera = objects.Camera()

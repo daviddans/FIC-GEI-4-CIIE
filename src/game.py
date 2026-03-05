@@ -6,6 +6,8 @@ from pygame.locals import *
 import scenes
 from configparser import ConfigParser
 from resourceManager import ResourceManager
+from hud import DebugHUD
+
 #ToDo: implement game as singletone for more security.
 class Game:
     def __init__(self):
@@ -16,15 +18,38 @@ class Game:
         self.screen = pygame.display.set_mode((self.config.getint("video", "xres"), self.config.getint("video", "xres")), 0, 32)
         self.sceneStack = [scenes.MainMenu(self,"mainmenu")]
         self.clock = pygame.time.Clock()
+
+        # HUD de debug
+        self.hud = DebugHUD(
+            self.screen,
+            self.config.getint("video", "xres"),
+            self.config.getint("video", "xres")
+        )
         
     def game_loop(self,scene):  
         self.sceneQuitFlg = False
         pygame.event.clear()
         while not self.sceneQuitFlg:
             dt = self.clock.tick(self.config.getint("video", "maxfps"))
-            scene.events(pygame.event.get())
+            events = pygame.event.get()
+
+            # Toggle HUD con F3
+            for event in events:
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_F3:
+                    self.hud.toggle()
+
+            scene.events(events)
             scene.update(dt)
             scene.draw()
+
+            # HUD encima de todo
+            self.hud.draw(
+                fps=self.clock.get_fps(),
+                jugador_pos=getattr(scene, 'player', None) and scene.player.pos or (0, 0),
+                escena=scene.name,
+                dialogo_activo=None
+            )
+
             pygame.display.update()
 
     def run(self):
