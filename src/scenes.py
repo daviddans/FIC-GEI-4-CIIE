@@ -14,18 +14,17 @@ class TestScene(abstract.Scene):
         super().__init__(game, name)
         self.player = player.Player()
         self.bg = pygame.image.load(utils.conf.get("engine","assets_path") + "background.png")
+    
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
                 self.game.quitGame()
 
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_t:  # Pulsar D para iniciar diálogo
+                if event.key == pygame.K_t:
+
                     dm = dialog.DialogManager()
-                    dm.add_dialog(dialog.Dialog("Jugador", "¿Dónde estoy?"))
-                    dm.add_dialog(dialog.Dialog("Narrador", "Has entrado en una escena de prueba."))
-                    dm.add_dialog(dialog.Dialog("Narrador", "Pulsa ESPACIO para continuar los diálogos."))
-                    dm.reset()
+                    dm.load_from_csv("dialogs/test_dialog.csv")
 
                     dialog_scene = dialog.DialogScene(self.game, dm)
                     self.game.switchScene(dialog_scene)

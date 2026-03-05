@@ -1,6 +1,6 @@
 import pygame
 import abstract
-
+import csv
 
 class Dialog:
     def __init__(self, name, text):
@@ -19,19 +19,25 @@ class DialogManager:
     def add_dialog(self, dialog):
         self.dialogs.append(dialog)
 
+    def load_from_csv(self, filepath):
+        import csv
+
+        self.dialogs = []
+        self.current_dialog_index = 0
+
+        with open(filepath, newline='', encoding="utf-8") as file:
+            reader = csv.DictReader(file)
+
+            for row in reader:
+                self.dialogs.append(Dialog(row["name"], row["text"]))
+
     def get_current_dialog(self):
         if self.current_dialog_index < len(self.dialogs):
             return self.dialogs[self.current_dialog_index]
         return None
 
     def next_dialog(self):
-        if self.current_dialog_index < len(self.dialogs) - 1:
-            self.current_dialog_index += 1
-            return True
-        return False
-
-    def reset(self):
-        self.current_dialog_index = 0
+        self.current_dialog_index += 1
 
 
 class DialogScene(abstract.Scene):
@@ -48,9 +54,12 @@ class DialogScene(abstract.Scene):
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    if not self.dialog_manager.next_dialog():
-                        # Si no hay más diálogo, cerramos escena
-                        self.game.quitScene()
+                     
+                    self.dialog_manager.next_dialog()
+
+                    if self.dialog_manager.get_current_dialog() is None:
+                        self.game.quitScene()   
+                        return
 
     def update(self, dt):
         pass
