@@ -7,6 +7,7 @@ import objects
 import abstract
 import audio
 import utils
+import dialog
 from resourceManager import ResourceManager
 
 
@@ -15,6 +16,8 @@ class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         self.player = player.Player()
+        self.bg = pygame.image.load(utils.conf.get("engine","assets_path") + "background.png")
+    
         config = ResourceManager.getConfig()
         self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
         self.camera = objects.Camera()
@@ -32,6 +35,15 @@ class TestScene(abstract.Scene):
         for event in events:
             if event.type == pygame.QUIT:
                 self.game.quitGame()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_t:
+
+                    dm = dialog.DialogManager()
+                    dm.load_from_csv("dialogs/test_dialog.csv")
+
+                    dialog_scene = dialog.DialogScene(self.game, dm)
+                    self.game.switchScene(dialog_scene)
 
     def update(self, dt):
         self.player.update(dt)
