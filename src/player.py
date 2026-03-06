@@ -7,37 +7,27 @@ import objects
 from resourceManager import ResourceManager
 
 class Player(abstract.Object):
-    def __init__(self):
+    def __init__(self, pos=(0,0)):
         super().__init__("player", 1)
-        self.pos = (0,0)
+        self.pos = pos  
         self.atlas = ResourceManager.getAtlas("player-base")
-        self.graphic = components.Graphic(self, self.atlas, True)
+        self.graphic = components.Graphic(self, self.atlas, True, True)
         self.graphic.addName("idle", 0, 2)
         self.graphic.set("idle")
-
-    def input(self):
-        keys = pygame.key.get_pressed()
-        vector = (0,0)
-        if keys[pygame.K_w]:
-            vector = (0,-1)
-        if keys[pygame.K_s]:
-            vector = (0,1)
-        if keys[pygame.K_a]:
-            vector = (-1,0) 
-        if keys[pygame.K_d]:
-            vector = (1,0)
-        return vector
-
-    def move(self, vector):
-        self.pos = (self.pos[0]+vector[0], self.pos[1]+vector[1])
+        self.input = components.Input(self)
+        self.move = components.Movement(self, speed=0.5)
+        self.pos = self.graphic.rect.copy()
         
     def collide(self):
         pass
 
-    def update(self, dt):
-        vector = self.input()
-        vector = (vector[0]* dt, vector[1]*dt)
-        self.move(vector)
+    def update(self, dt, map=None):
+        self.input.update()
+        vector = self.input.get_vector()
+        if  vector != (0,0) : 
+            self.move.update(vector, dt, map)
 
     def events(self):
         pass
+
+    
