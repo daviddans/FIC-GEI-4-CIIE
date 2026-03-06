@@ -2,8 +2,6 @@ import pygame
 import numpy as np
 from resourceManager import ResourceManager
 
-
-
 #Deprecated since the new atlas system
 def sliceAtlas(image_path, discard_uniform=False, variance_threshold=8, ratio_threshold=0.95):
     pygame.init()

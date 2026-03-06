@@ -13,7 +13,7 @@ class Game:
         # Buffer: 4096 (recomendado en apuntes para evitar cortes)
         pygame.mixer.pre_init(44100, -16, 2, 4096)
         self.config = ResourceManager.getConfig()
-        self.screen = pygame.display.set_mode((self.config.getint("video", "xres"), self.config.getint("video", "xres")), 0, 32)
+        self.screen = pygame.display.set_mode((self.config.getint("video", "xres"), self.config.getint("video", "yres")), 0, 32)
         self.sceneStack = [scenes.MainMenu(self,"mainmenu")]
         self.clock = pygame.time.Clock()
         
