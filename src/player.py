@@ -16,7 +16,7 @@ class Player(abstract.Object):
         self.graphic.addName("idle", 0, 2)
         self.graphic.set("idle")
         self.input = components.Input(self)
-        self.move = components.Movement(self, speed=1)
+        self.move = components.Movement(self, speed=200)
 
     def collide(self):
         pass

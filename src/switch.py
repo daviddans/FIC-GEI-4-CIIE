@@ -3,9 +3,10 @@ from resourceManager import ResourceManager
 import components
 import pygame
 
-class Switch(abstract.Object):
+class Switch(abstract.Object, abstract.Observable):
     def __init__(self, pos, target_object=None):
-        super().__init__("switch", pos)
+        abstract.Object.__init__(self, "switch", pos)
+        abstract.Observable.__init__(self)
         self.is_pressed = False 
         self.target = target_object
         self.atlas = ResourceManager.getAtlas("interruptor")
@@ -16,7 +17,6 @@ class Switch(abstract.Object):
         self.graphic.set("switch-off") 
         self.interact_range = 50
         
-       
         self.already_pressed = False 
 
     def update(self, dt, player_pos):
@@ -43,8 +43,9 @@ class Switch(abstract.Object):
         if self.is_pressed:
             self.graphic.set("switch-on")
             print("Interruptor encendido")
-            if self.target: self.target.unlock()
+            self.notify(self, 'SWITCH_ON')
         else:
             self.graphic.set("switch-off")
             print("Interruptor apagado")
             if self.target: self.target.lock()
+            self.notify(self, 'SWITCH_OFF')
