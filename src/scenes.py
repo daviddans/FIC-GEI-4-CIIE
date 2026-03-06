@@ -8,8 +8,8 @@ import abstract
 import audio
 import utils
 from resourceManager import ResourceManager
-
-
+import switch
+import door
 
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
@@ -17,6 +17,8 @@ class TestScene(abstract.Scene):
         self.player = player.Player()
         config = ResourceManager.getConfig()
         self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
+        self.switch = switch.Switch(pos=(400, 300))
+        self.door = door.Door(pos=(600,300), is_locked=False)
         self.camera = objects.Camera()
         self.testGroup = pygame.sprite.Group()
         self.map = objects.tileMap("testMap")
@@ -25,6 +27,8 @@ class TestScene(abstract.Scene):
             tree = objects.testTree()
             tree.sprite.add(self.testGroup)
         self.player.graphic.add(self.testGroup)
+        self.switch.graphic.add(self.testGroup)
+        self.door.graphic.add(self.testGroup)
         self.camera.addGroup(self.testGroup)
         self.camera.setReference(self.player)
         
@@ -35,6 +39,8 @@ class TestScene(abstract.Scene):
 
     def update(self, dt):
         self.player.update(dt)
+        self.switch.update(dt, self.player.pos)
+        self.door.update(dt, self.player.pos)
         self.testGroup.update(dt)
         self.camera.update(dt)
         

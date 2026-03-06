@@ -12,7 +12,7 @@ class Player(abstract.Object):
 
         self.pos = (0,0)
         self.atlas = ResourceManager.getAtlas("player-base")
-        self.graphic = components.Graphic(self, self.atlas, True)
+        self.graphic = components.Graphic(self, self.atlas, True, True)
         self.graphic.addName("idle", 0, 2)
         self.graphic.set("idle")
         self.input = components.Input(self)
