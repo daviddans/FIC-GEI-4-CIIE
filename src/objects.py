@@ -31,7 +31,7 @@ class Camera(abstract.Object):
     def addGroup(self, group:pygame.sprite.Group):
         self.spriteGroups.append(group)
 
-    def move(self, target, strength=1):
+    def moveCamera(self, target, strength=1):
         #move the camera    
         DEFAUTL_STRENGTH = 0.9
         vector = pygame.math.Vector2(target)
@@ -63,10 +63,10 @@ class Camera(abstract.Object):
 
     def update(self,dt):
         if self.reference is not None :
-            if not self.bounding.collidepoint(self.reference.pos):
+            if not self.bounding.collidepoint(self.reference.pos.topleft):
                 #Recalcular la fuerza del movimiento en funcion de la tasa de fotogramas
                 strength = (dt/1000) * ResourceManager.getConfig().getint("video", "maxfps")
-                self.move(self.reference.pos, round(strength))
+                self.moveCamera(self.reference.pos.topleft, round(strength))
             
     def draw(self, screen):
         for group in self.spriteGroups:

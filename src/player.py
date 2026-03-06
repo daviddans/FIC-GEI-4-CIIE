@@ -16,13 +16,15 @@ class Player(abstract.Object):
         self.graphic.set("idle")
         self.input = components.Input(self)
         self.move = components.Movement(self, speed=0.5)
-        self.pos = self.graphic.rect.topleft
+        self.pos = self.graphic.rect.copy()
     def collide(self):
         pass
 
     def update(self, dt, map=None):
         self.input.update()
-        self.move.update(self.input.get_vector(), dt, map)
+        vector = self.input.get_vector()
+        if  vector != (0,0) : 
+            self.move.update(vector, dt, map)
 
     def events(self):
         pass

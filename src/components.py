@@ -176,10 +176,34 @@ class Movement():
         self.speed = speed
      
     def update(self, vector, dt, map):
-        target = (self.parent.pos[0] + vector[0] * self.speed * dt, self.parent.pos[1] + vector[1] * self.speed * dt)   
+
+        
+        #Calcular movimiento
+        move = (vector.x * self.speed * dt, vector.y *self.speed * dt)
+        #Calcular posicion resultante
+        target = (self.parent.pos.left + move[0], self.parent.pos.top + move[1])
+        #Comprobar que todas las esquinas vayan a una casilla accesible
+        if vector.x > 0 : #Derecha
+            if ( not self.reachable(self.parent.pos.right + move[0], self.parent.pos.top, map) 
+                or not self.reachable(self.parent.pos.right + move[0], self.parent.pos.bottom, map) ):
+                target = (self.parent.pos.left, target[1])
+        elif vector.x < 0: #Izquierda
+            if ( not self.reachable(self.parent.pos.left + move[0], self.parent.pos.top, map) 
+                or not self.reachable(self.parent.pos.left + move[0], self.parent.pos.bottom, map) ):
+                target = (self.parent.pos.left, target[1])
+
+        if vector.y > 0 : #Abajo
+            if ( not self.reachable(self.parent.pos.left, self.parent.pos.bottom + move[1], map) 
+                or not self.reachable(self.parent.pos.right, self.parent.pos.bottom + move[1], map) ):
+                target = (target[0], self.parent.pos.top)
+        elif vector.y < 0 : #Arriba
+            if ( not self.reachable(self.parent.pos.left, self.parent.pos.top + move[1], map) 
+                or not self.reachable(self.parent.pos.right, self.parent.pos.top + move[1], map) ):
+                 target = (target[0], self.parent.pos.top)
+
+        #actualizar posicion
+        self.parent.pos.topleft = target
         print(f"move target to: {target}")
-        if self.reachable(target[0], target[1], map):
-            self.parent.pos = target
 
     #Comprobar si es una posicion alcanzable en una matriz de mapa
     def reachable(self, x_pixel, y_pixel, matrix):
