@@ -174,13 +174,24 @@ class Input():
 
     def get_vector(self):
         return self.direction
-    #habra que generalizar el update cuando hagamos la logica de los npcs
+
+   
     def update(self):
-        keys = pygame.key.get_pressed()
-        x = keys[pygame.K_d] - keys[pygame.K_a]
-        y = keys[pygame.K_s] - keys[pygame.K_w]
+        #esto es un poco sucio porque fuerza a pygame a actualizar su estado, hay que revisar como hacerlo bien porque no se mueve el player si no
+        pygame.event.pump() 
         
-        self.direction.update(x,y)
+        keys = pygame.key.get_pressed()
+        
+        x = 0
+        y = 0
+        if keys[pygame.K_d] or keys[pygame.K_RIGHT]: x += 1
+        if keys[pygame.K_a] or keys[pygame.K_LEFT]:  x -= 1
+        if keys[pygame.K_s] or keys[pygame.K_DOWN]:  y += 1
+        if keys[pygame.K_w] or keys[pygame.K_UP]:    y -= 1
+        
+        self.direction.x = x
+        self.direction.y = y
+        
         if self.direction.length() > 0:
             self.direction = self.direction.normalize()
 
@@ -189,8 +200,16 @@ class Movement():
         self.parent = parent
         self.speed = speed
      
+    # En components.py -> Clase Movement
     def update(self, vector, dt):
-        self.parent.pos = (self.parent.pos[0] + vector[0] * self.speed * dt, self.parent.pos[1] + vector[1] * self.speed * dt)   
+    # Convertimos dt a SEGUNDOS (porque speed es px/seg)
+     dt_seg = dt / 1000.0
+    
+    # Calculamos el desplazamiento
+     if vector.length() > 0:
+        new_x = self.parent.pos[0] + (vector.x * self.speed * dt_seg)
+        new_y = self.parent.pos[1] + (vector.y * self.speed * dt_seg)
+        self.parent.pos = (new_x, new_y)
 
 class Colision():   
     def __init__(self, parent:abstract.Object):

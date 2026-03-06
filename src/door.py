@@ -9,7 +9,7 @@ class Door(abstract.Object):
         
         self.is_locked = is_locked
         self.is_open = False
-        self.proximity_range = 80 # Distancia para que se abra sola
+        self.proximity_range = 80 # Distancia para que se abra dsola
         
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas, animate=False, loop=False)
