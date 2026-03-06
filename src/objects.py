@@ -13,7 +13,7 @@ class testTree(abstract.Object):
         image = pygame.image.load(config.get("engine", "assets_path") + "arbol.png")
         self.pos = (randint(-100, 1000), randint(-100, 1000))
         self.atlas = ResourceManager.getAtlas("arbol")
-        self.sprite = components.Graphic(self,self.atlas, False)
+        self.sprite = components.Graphic(self,self.atlas, False, False)
         self.sprite.addName("tree", 0,0)
         self.sprite.set("tree")
 

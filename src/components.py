@@ -49,16 +49,19 @@ Component for displaying sprites.
 
 
 class Graphic(pygame.sprite.Sprite):
-    def __init__(self, parent:abstract.Object, atlas:Atlas, animate:bool, speed:int = 1000):
+    def __init__(self, parent:abstract.Object, atlas:Atlas, animate:bool, loop:bool, speed:int = 1000):
         super().__init__()
         self.animate = animate
+        self.loop = loop
         self.parent = parent
         self.atlas = atlas
         self.current = (0,0)
-        if animate :
-            self.frame = 0
-            self.time_elapsed = 0
-            self.time_animation = speed
+        #if animate : Comento esta línea porque peta con la puerta porque sigue esta secuencia:
+        #locked → animate=False  unlocked → animate=False opening → animate=True
+        #Entonces al incializar el componente se crea con animate=Flase y con el if ya no se incicializa time_elapsed y peta, yo quitaría el if y que siempre se incialicen estas variables
+        self.frame = 0
+        self.time_elapsed = 0
+        self.time_animation = speed
         self.names = dict()
         self.image = None
         self.rect = None
@@ -79,11 +82,22 @@ class Graphic(pygame.sprite.Sprite):
             self.frame = begin
 
     def nextFrame(self):
-        if self.animate :
-            self.frame = (self.frame + 1) % (self.current[1] - self.current[0]) 
-            self.frame += self.current[0]
-            self.image = self.atlas.getSprite(self.frame)
-            self.rect = self.image.get_rect()
+     if not self.animate:
+        return
+    # Para las animaciones en loop, al llegar al final vuelven a empezar. 
+    # Cambié la implementación porque pasaba que si coincidía que %1 (en animaciones de dos frames) entonces daba cero y al ser 0 nunca llegaba al último frame de animación
+    # Esto es lo más eficiente que se me ha ocurrido 
+     if self.loop:
+        self.frame += 1
+        if self.frame > self.current[1]:
+            self.frame = self.current[0]
+    # Para los objetos que no son loop, se quedan en el ultimo frame
+     else:
+        if self.frame < self.current[1]:
+            self.frame += 1
+        else:
+            self.animate = False 
+     self.image = self.atlas.getSprite(self.frame)
 
     def update(self, dt):
         if self.animate :
@@ -162,11 +176,21 @@ class Input():
         return self.direction
     
     def update(self):
-        keys = pygame.key.get_pressed()
-        x = keys[pygame.K_d] - keys[pygame.K_a]
-        y = keys[pygame.K_s] - keys[pygame.K_w]
+        #esto es un poco sucio porque fuerza a pygame a actualizar su estado, hay que revisar como hacerlo bien porque no se mueve el player si no
+        pygame.event.pump() 
         
-        self.direction.update(x,y)
+        keys = pygame.key.get_pressed()
+        
+        x = 0
+        y = 0
+        if keys[pygame.K_d] or keys[pygame.K_RIGHT]: x += 1
+        if keys[pygame.K_a] or keys[pygame.K_LEFT]:  x -= 1
+        if keys[pygame.K_s] or keys[pygame.K_DOWN]:  y += 1
+        if keys[pygame.K_w] or keys[pygame.K_UP]:    y -= 1
+        
+        self.direction.x = x
+        self.direction.y = y
+        
         if self.direction.length() > 0:
             self.direction = self.direction.normalize()
 
