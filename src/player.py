@@ -17,6 +17,7 @@ class Player(abstract.Object):
         self.input = components.Input(self)
         self.move = components.Movement(self, speed=0.5)
         self.pos = self.graphic.rect.copy()
+        
     def collide(self):
         pass
 

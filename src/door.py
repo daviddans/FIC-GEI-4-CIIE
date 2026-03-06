@@ -3,7 +3,7 @@ from resourceManager import ResourceManager
 import components
 import pygame
 
-class Door(abstract.Object):
+class Door(abstract.Object, abstract.Observer):
     def __init__(self, pos, is_locked=True):
         super().__init__("door", pos)
         
@@ -23,6 +23,14 @@ class Door(abstract.Object):
             self.graphic.set("locked")
         else:
             self.graphic.set("unlocked")
+
+    def on_notify(self, entity, event):
+        if event == 'SWITCH_ON':
+            self.unlock()
+            print("Puerta desbloqueada (evento SWITCH_ON)")
+        elif event == 'SWITCH_OFF':
+            self.lock()
+            print("Puerta bloqueada (evento SWITCH_OFF)")
 
     def unlock(self):
         self.is_locked = False

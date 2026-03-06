@@ -1,3 +1,6 @@
+from abc import ABC, abstractmethod
+
+
 class Scene: 
     def __init__(self, game, name="unamed"):
         self.game = game
@@ -35,3 +38,21 @@ class Object:
     
     def draw(self):
         raise NotImplementedError("Object: " + self.name + ". Draw method not found, must be given an implementation.\n")
+
+class Observer(ABC):
+    # Cualquier objeto que reacciona a algo (puertas)
+    @abstractmethod
+    def on_notify(self, entity, event):
+        pass
+
+class Observable:
+    # Cualquier objeto que sea un emisor de eventos (interruptores)
+    def __init__(self):
+        self.observers = []
+
+    def add_observer(self, observer):
+        self.observers.append(observer)
+
+    def notify(self, entity, event):
+        for observer in self.observers:
+            observer.on_notify(entity, event)
