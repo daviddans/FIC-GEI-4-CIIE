@@ -1,0 +1,9 @@
+{
+    "scene_name": "testMap",
+    "entities": [
+        { "id": "player", "type": "Player", "pos": [400, 200] },
+        { "id": "switch1", "type": "Switch", "pos": [400, 300], "is_pressed": false },
+        { "id": "door1", "type": "Door", "pos": [600, 200], "is_locked": true },
+        { "id": "tree_01", "type": "Tree", "pos": [100, 150] }
+    ]
+}

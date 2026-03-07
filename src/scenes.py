@@ -10,62 +10,94 @@ import utils
 from resourceManager import ResourceManager
 import switch
 import door
+from datetime import datetime
+from saveManager import SaveManager
 
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
-        self.player = player.Player((400,200))
+        
+     
         config = ResourceManager.getConfig()
         self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
-        self.switch1 = switch.Switch(pos=(400, 300))
-        self.switch2 = switch.Switch(pos=(800, 300))
-        self.door1 = door.Door(pos=(600, 200), is_locked=True)
-        self.door2 = door.Door(pos=(600, 400), is_locked=True)
-        self.door3 = door.Door(pos=(600, 600), is_locked=True)
-
-        self.switch1.add_observer(self.door1)
-        self.switch1.add_observer(self.door2)
-        self.switch2.add_observer(self.door3)
-
+        
+       
+        self.map = objects.tileMap("testMap")
         self.camera = objects.Camera()
         self.testGroup = pygame.sprite.Group()
-        self.map = objects.tileMap("testMap")
         self.map.sprite.add(self.testGroup)
-        for i in range(0,10):
-            tree = objects.testTree()
-            tree.sprite.add(self.testGroup)
+        
+        #  carga de las entidades desde el json de fase
+        self.fase_data = ResourceManager.getJSON("phase.json")
+        self.entities_dict = {} 
+        
+        self.player = player.Player((400,200)) 
+
+        # Bucle de carga de entidades desde la Fase
+        for ent in self.fase_data.get("entities", []):
+            pos = ent["pos"]
+            tipo = ent["type"]
+            id_nombre = ent["id"]
+            
+            if tipo == "Switch":
+                obj = switch.Switch(pos=pos)
+                obj.is_pressed = ent.get("is_pressed", False)
+                if obj.is_pressed: 
+                    obj.graphic.set("switch-on")
+                self.entities_dict[id_nombre] = obj
+                
+            elif tipo == "Door":
+                locked = ent.get("is_locked", True)
+                obj = door.Door(pos=pos, is_locked=locked)
+                self.entities_dict[id_nombre] = obj
+                
+            elif tipo == "Player":
+                self.player.pos.topleft = pos
+
+        if "switch1" in self.entities_dict:
+            if "door1" in self.entities_dict: 
+                self.entities_dict["switch1"].add_observer(self.entities_dict["door1"])
+            if "door2" in self.entities_dict: 
+                self.entities_dict["switch1"].add_observer(self.entities_dict["door2"])
+        
+        if "switch2" in self.entities_dict and "door3" in self.entities_dict:
+            self.entities_dict["switch2"].add_observer(self.entities_dict["door3"])
+
+    
+        # Árboles 
+       # for i in range(0, 10):
+    #        tree = objects.testTree()
+     #       tree.sprite.add(self.testGroup)
+            
         self.player.graphic.add(self.testGroup)
-        self.switch1.graphic.add(self.testGroup)
-        self.switch2.graphic.add(self.testGroup)
-        self.door1.graphic.add(self.testGroup)
-        self.door2.graphic.add(self.testGroup)
-        self.door3.graphic.add(self.testGroup)
+        for ent_obj in self.entities_dict.values():
+            ent_obj.graphic.add(self.testGroup)
+            
+     
         self.camera.addGroup(self.testGroup)
         self.camera.setReference(self.player)
 
-        
-        
+        SaveManager.load(self)
+
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
                 self.game.quitGame()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_g: 
+                    SaveManager.save(self)
 
-    def update(self, dt):
-        #Para actualizar el player necesitamos dt y el mapa de alcanzabilidad
+    def update(self, dt):   
         self.player.update(dt, map=self.map.reachable)
-        self.switch1.update(dt, self.player.pos.topleft)
-        self.switch2.update(dt, self.player.pos.topleft)
-        self.door1.update(dt, self.player.pos.topleft)
-        self.door2.update(dt, self.player.pos.topleft)
-        self.door3.update(dt, self.player.pos.topleft)
+        
+        for ent in self.entities_dict.values():
+            ent.update(dt, self.player.pos.topleft)
+
         self.testGroup.update(dt)
         self.camera.update(dt)
-        self.testGroup.update(dt)
-        
-        
+
     def draw(self):
         screen = self.game.screen
-        screen.fill("black")
         screen.fill("black")
         self.camera.draw(screen)
 
@@ -108,3 +140,5 @@ class MainMenu(abstract.Scene):
         self.settingsButton.draw(screen)
         self.quitButton.draw(screen)
         pygame.display.update()
+
+
