@@ -43,11 +43,21 @@ class Game:
             scene.draw()
 
             # HUD encima de todo
+            # Buscamos el player en el stack (puede estar en una escena por debajo del diálogo)
+            player_pos = (0, 0)
+            for s in reversed(self.sceneStack):
+                if hasattr(s, 'player'):
+                    player_pos = s.player.pos
+                    break
+
+            dialogo_activo = scene.name if scene.name == "dialog" else None
+            escena_nombre = next((s.name for s in reversed(self.sceneStack) if s.name != "dialog"), scene.name)
+
             self.hud.draw(
                 fps=self.clock.get_fps(),
-                jugador_pos=getattr(scene, 'player', None) and scene.player.pos or (0, 0),
-                escena=scene.name,
-                dialogo_activo=None
+                jugador_pos=player_pos,
+                escena=escena_nombre,
+                dialogo_activo=dialogo_activo
             )
 
             pygame.display.update()
@@ -60,6 +70,7 @@ class Game:
     def quitScene(self):
         try:
             self.sceneStack.pop()
+            self.sceneQuitFlg = True  # salir del game_loop para que run() coja la siguiente escena
         except IndexError:
             pass
     

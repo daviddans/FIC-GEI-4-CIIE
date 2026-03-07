@@ -17,6 +17,11 @@ class testTree(abstract.Object):
         self.sprite.addName("tree", 0,0)
         self.sprite.set("tree")
 
+    def get_rect(self):
+        r = self.sprite.image.get_rect()
+        r.topleft = self.pos
+        return r
+
 class Camera(abstract.Object):
     def __init__(self, name="camera", pos=(0,0)):
         super().__init__(name, pos)
@@ -76,8 +81,32 @@ class tileMap(abstract.Object):
         super().__init__(name, pos)
         # load and cache the TMX data
         self.tmx = ResourceManager.getTileMap(tmx)
+        self.scale = ResourceManager.getConfig().getint("video", "scale")
+        self._walkable = self._parse_reachable()
         layers = self._render_map()
         self.sprite = components.Tile(self, layers)
+
+    def _parse_reachable(self):
+        """Lee la capa 'reachable' del TMX y devuelve un set de celdas (col, row) pisables."""
+        walkable = set()
+        for layer in self.tmx.layers:
+            if hasattr(layer, 'name') and layer.name == "reachable":
+                for x, y, gid in layer:
+                    if gid != 0:
+                        walkable.add((x, y))
+                break
+        return walkable
+
+    def is_walkable(self, world_x, world_y):
+        """Devuelve True si la posición en píxeles de mundo es pisable.
+        Si no hay capa reachable definida, permite moverse libremente."""
+        if not self._walkable:
+            return True
+        tw = self.tmx.tilewidth * self.scale
+        th = self.tmx.tileheight * self.scale
+        col = int(world_x // tw)
+        row = int(world_y // th)
+        return (col, row) in self._walkable
 
     def update(self, dt):
         # forward to the sprite component so camera offsets are applied

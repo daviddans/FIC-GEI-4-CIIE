@@ -23,12 +23,34 @@ class TestScene(abstract.Scene):
         self.testGroup = pygame.sprite.Group()
         self.map = objects.tileMap("testMap")
         self.map.sprite.add(self.testGroup)
-        for i in range(0,10):
+
+        self.trees = []
+        for i in range(0, 10):
             tree = objects.testTree()
             tree.sprite.add(self.testGroup)
+            self.trees.append(tree)
+
         self.player.graphic.add(self.testGroup)
         self.camera.addGroup(self.testGroup)
         self.camera.setReference(self.player)
+
+        self._in_tree_collision = False
+
+    def _check_tree_collision(self):
+        px, py = self.player.pos
+        touching_tree = False
+        for tree in self.trees:
+            if tree.get_rect().collidepoint(px, py):
+                touching_tree = True
+                if not self._in_tree_collision:
+                    self._in_tree_collision = True
+                    dm = dialog.DialogManager()
+                    dm.add_dialog(dialog.Dialog("", "Esto es un árbol."))
+                    self.game.switchScene(dialog.DialogScene(self.game, dm))
+                return
+        # si ya no toca ningún árbol, resetea el flag
+        if not touching_tree:
+            self._in_tree_collision = False
         
     def events(self, events):
         for event in events:
@@ -48,6 +70,7 @@ class TestScene(abstract.Scene):
         self.player.update(dt)
         self.testGroup.update(dt)
         self.camera.update(dt)
+        self._check_tree_collision()
         
     def draw(self):
         screen = self.game.screen
