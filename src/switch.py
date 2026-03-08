@@ -42,17 +42,15 @@ class Switch(abstract.Object, abstract.Observable):
             self.already_pressed = False
 
     def toggle(self):
-        # Cambiar al estado contrario si ya está encendido
         self.is_pressed = not self.is_pressed
         
         if self.is_pressed:
             self.graphic.set("switch-on")
             print("Interruptor encendido")
-            self.notify(self, 'SWITCH_ON')
+            self.notify(self, 'SWITCH_ON') 
         else:
             self.graphic.set("switch-off")
             print("Interruptor apagado")
-            if self.target: self.target.lock()
             self.notify(self, 'SWITCH_OFF')
 
     def serialize(self):
@@ -60,6 +58,5 @@ class Switch(abstract.Object, abstract.Observable):
 
     def unserialize(self, data):
         self.is_pressed = data["is_pressed"]
-        # Actualizamos el gráfico para que coincida
         if self.is_pressed: self.graphic.set("switch-on")
         else: self.graphic.set("switch-off")

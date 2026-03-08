@@ -31,7 +31,7 @@ class TestScene(abstract.Scene):
         self.map.sprite.add(self.testGroup)
         self.camera.addGroup(self.testGroup)
 
-        self.load_phase("test_phase.json")
+        self.load_from_tiled()
         SaveManager.load(self)
         if self.player:
             self.camera.setReference(self.player)
@@ -60,37 +60,53 @@ class TestScene(abstract.Scene):
         screen.fill("black")
         self.camera.draw(screen)
     
-    def load_phase(self, phase_name):
-        data = ResourceManager.getJSON(phase_name)
-        
-        # Mapeo de tipos a clases
+    def load_from_tiled(self):
+        # Mapeo de clases
         classes = {
             "Player": player.Player,
             "Switch": switch.Switch,
             "Door": door.Door
         }
 
-        # Crear entidades
-        for ent in data.get("entities", []):
-            clase_obj = classes.get(ent["type"])
+        tmx_data = self.map.tmx
+        scale = ResourceManager.getConfig().getint("video", "scale")
+
+        for obj in tmx_data.objects:
+          
+            clase_obj = classes.get(obj.type)
+            
             if clase_obj:
-                obj = clase_obj(pos=ent["pos"], **ent.get("args", {}))
+                props = obj.properties 
+                scaled_pos = (obj.x * scale, obj.y * scale)
                 
-                # guardar en el dict y añadir al grupo
-                self.entities_dict[ent["id"]] = obj
-                obj.graphic.add(self.testGroup)
+                nuevo_obj = clase_obj(pos=scaled_pos, **props)
+            
+                ent_id = obj.name if obj.name else str(obj.id)
+                self.entities_dict[ent_id] = nuevo_obj
                 
-                if ent["type"] == "Player":
-                    self.player = obj
+                nuevo_obj.graphic.add(self.testGroup)
+                
+                # Referencia para la cámara
+                if obj.type == "Player":
+                    self.player = nuevo_obj
 
-        # Conectar lógica 
-        for conn in data.get("connections", []):
-            emisor = self.entities_dict.get(conn["from"])
-            receptor = self.entities_dict.get(conn["to"])
-            if emisor and receptor:
-                emisor.add_observer(receptor)
+        for ent_id, ent in self.entities_dict.items():
+            if hasattr(ent, 'target') and ent.target:
+                # ahora mismo se implementa en el tiled como (door1,door2)
+                target_names = str(ent.target).split(",")
+                ent.target_objects = [] 
 
-    
+                for name in target_names:
+                    receptor_name = name.strip()
+                    receptor = self.entities_dict.get(receptor_name)
+                    
+                    if receptor:
+                        ent.add_observer(receptor)
+                        ent.target_objects.append(receptor)
+                        if len(target_names) == 1:
+                            ent.target = receptor
+                            
+                        print(f"Lógica conectada: {ent_id} -> {receptor_name}")
 
 class MainMenu(abstract.Scene):
     def __init__(self, game, name="unamed"):
