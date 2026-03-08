@@ -4,12 +4,12 @@ import components
 import pygame
 
 class Door(abstract.Object, abstract.Observer):
-    def __init__(self, pos, is_locked=True):
+    def __init__(self, pos, is_locked=True, proximity_range=80):
         super().__init__("door", pos)
         
         self.is_locked = is_locked
         self.is_open = False
-        self.proximity_range = 80 # Distancia para que se abra dsola
+        self.proximity_range = proximity_range # Distancia para que se abra sola
         
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas, animate=False, loop=False)
@@ -77,6 +77,6 @@ class Door(abstract.Object, abstract.Observer):
 
     def unserialize(self, data):
         self.is_locked = data["is_locked"]
-        # Actualizamos el gráfico para que coincida
+        # Actualizar el gráfico para que coincida
         if self.is_locked: self.graphic.set("locked")
         else: self.graphic.set("unlocked")

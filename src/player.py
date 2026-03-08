@@ -7,16 +7,17 @@ import objects
 from resourceManager import ResourceManager
 
 class Player(abstract.Object):
-    def __init__(self, pos=(0,0)):
+    def __init__(self, pos=(0,0), speed=0.5):
         super().__init__("player", 1)
-        self.pos = pos  
+        self.pos = list(pos)  
         self.atlas = ResourceManager.getAtlas("player-base")
         self.graphic = components.Graphic(self, self.atlas, True, True)
         self.graphic.addName("idle", 0, 2)
         self.graphic.set("idle")
         self.input = components.Input(self)
-        self.move = components.Movement(self, speed=0.5)
+        self.move = components.Movement(self, speed=speed)
         self.pos = self.graphic.rect.copy()
+        self.pos.topleft = pos
         
     def collide(self):
         pass

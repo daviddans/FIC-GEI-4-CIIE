@@ -31,28 +31,31 @@ class TestScene(abstract.Scene):
         self.fase_data = ResourceManager.getJSON("phase.json")
         self.entities_dict = {} 
         
-        self.player = player.Player((400,200)) 
+        self.player = None
 
         # Bucle de carga de entidades desde la Fase
         for ent in self.fase_data.get("entities", []):
             pos = ent["pos"]
             tipo = ent["type"]
             id_nombre = ent["id"]
+            constructor_args = ent.get("args", {})
             
             if tipo == "Switch":
-                obj = switch.Switch(pos=pos)
-                obj.is_pressed = ent.get("is_pressed", False)
-                if obj.is_pressed: 
-                    obj.graphic.set("switch-on")
+                # Inyectar pos y el resto de parámetros (is_pressed, etc.)
+                obj = switch.Switch(pos=pos, **constructor_args)
                 self.entities_dict[id_nombre] = obj
+                obj.graphic.add(self.testGroup)
                 
             elif tipo == "Door":
-                locked = ent.get("is_locked", True)
-                obj = door.Door(pos=pos, is_locked=locked)
+                # Inyectar pos y el resto (is_locked, etc.)
+                obj = door.Door(pos=pos, **constructor_args)
                 self.entities_dict[id_nombre] = obj
+                obj.graphic.add(self.testGroup)
                 
-            elif tipo == "Player":
-                self.player.pos.topleft = pos
+            elif tipo == "Player":   
+                #player al ser único no se busca en el diccionario y se accede directamente
+                self.player = player.Player(pos=pos, **constructor_args)
+                self.player.graphic.add(self.testGroup)
 
         if "switch1" in self.entities_dict:
             if "door1" in self.entities_dict: 

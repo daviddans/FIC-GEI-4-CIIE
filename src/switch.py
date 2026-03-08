@@ -4,10 +4,11 @@ import components
 import pygame
 
 class Switch(abstract.Object, abstract.Observable):
-    def __init__(self, pos, target_object=None):
+    def __init__(self, pos, is_pressed=False, interact_range=50, target_object=None):
         abstract.Object.__init__(self, "switch", pos)
         abstract.Observable.__init__(self)
-        self.is_pressed = False 
+        self.is_pressed = is_pressed
+        self.interact_range = interact_range
         self.target = target_object
         self.atlas = ResourceManager.getAtlas("interruptor")
         self.graphic = components.Graphic(self, self.atlas, False, False)
@@ -15,9 +16,13 @@ class Switch(abstract.Object, abstract.Observable):
         self.graphic.addName("switch-off", 0, 0) 
         self.graphic.addName("switch-on", 1, 1)   
         self.graphic.set("switch-off") 
-        self.interact_range = 50
         
-        self.already_pressed = False 
+        if self.is_pressed:
+            self.graphic.set("switch-on")
+        else:
+            self.graphic.set("switch-off")
+            
+     
 
     def update(self, dt, player_pos):
         self.graphic.update(dt)
