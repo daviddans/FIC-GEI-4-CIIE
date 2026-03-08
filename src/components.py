@@ -33,85 +33,73 @@ class Atlas():
         return self.atlas.subsurface(location)
 
 """
-Component for displaying sprites. 
-    ·Atributtes:
-        -Animate:bool -> true is animation, false is a static sprite
-        -Parent:abstract.Object -> Object that has an instance of this component
-        -Atlas:component.Atlas -> Atlas to retrieve the surfaces
-        -Current:int -> Id of the current sprite to show
-        -Names:dict -> Dictionary to store the ids on the atlas related to a name. This way we can play a animation "walk", previously defined instead of play an animation (12, 18) 
-    ·Methods:
-        -AddName(name, begin, end) -> Set a internal name for a static image or animation, an animation
-        will cycle between begin and end id images, for a static image, end will be ignored
-        -Set(name) -> Set the ids related to the name given as the current to display
-        -Set_id(begin, end)-> Set ids to show related to its atlas. For static sprite begin will used. For animation frame will cicle betwen begin and end
+Implentacion de la clase grafica como una maquina de estados
+Cada estado tiene una lista de ids 
+Durante el update se ira cambiando entre cada id mostrando el subsurface correspondiente del Atlas
+El update devolvera True si se alcanzo el ultimo frame o es unoe
 """
 
 
 class Graphic(pygame.sprite.Sprite):
-    def __init__(self, parent:abstract.Object, atlas:Atlas, animate:bool, loop:bool, speed:int = 1000):
+    def __init__(self, parent:abstract.Object, atlas:Atlas):
         super().__init__()
-        self.animate = animate
-        self.loop = loop
-        self.parent = parent
-        self.atlas = atlas
-        self.current = (0,0)
-        #if animate : Comento esta línea porque peta con la puerta porque sigue esta secuencia:
-        #locked → animate=False  unlocked → animate=False opening → animate=True
-        #Entonces al incializar el componente se crea con animate=Flase y con el if ya no se incicializa time_elapsed y peta, yo quitaría el if y que siempre se incialicen estas variables
-        self.frame = 0
-        self.time_elapsed = 0
-        self.time_animation = speed
-        self.names = dict()
         self.image = None
         self.rect = None
-        self.camera_pos = (0,0)
+        self.current_state = None
+        self._current_frame = 0
+        self._states = dict()
+        self.animate= False
+        self.parent = parent
+        self._atlas = atlas
+        self._camera_pos = (0,0)
         
-    def addName(self, name, begin, end):
-        self.names.update({name : (begin, end)})
+    def addState(self, name, ids:list[int]):
+        if len(ids) <= 0 :
+            raise Exception("No se puede añadir un estado sin frames al componente grafico")
+        self._states.update({name : ids})
 
-    def set(self, name):
-        self.set_id(self.names[name][0], self.names[name][1])
+    def setState(self, name):
+        updated_state = False
+        if name != self.current_state :
+            #Ponemos el estado escogido como actual
+            self.current_state = name
+            self.animate = len(self._states[self.current_state]) > 0 
+            self._current_frame = 0
+            self.image = self._atlas.getSprite(self._states[self.current_state][self._current_frame])
+            self.rect = self.image.get_rect()
+            #Actualizar rect del padre.
+            self.parent.pos.size = self.rect.size
+            updated_state = True
+        return updated_state
+    
+    def resetFrame(self):
+        self._current_frame = 0
 
-    def set_id(self, begin, end):
-        self.current = (begin, end)
-        self.image = self.atlas.getSprite(begin)
-        self.rect = self.image.get_rect()
-        self.rect.topleft = self.parent.pos
-        if self.animate:
-            self.frame = begin
-
-    def nextFrame(self):
-     if not self.animate:
-        return
-    # Para las animaciones en loop, al llegar al final vuelven a empezar. 
-    # Cambié la implementación porque pasaba que si coincidía que %1 (en animaciones de dos frames) entonces daba cero y al ser 0 nunca llegaba al último frame de animación
-    # Esto es lo más eficiente que se me ha ocurrido 
-     if self.loop:
-        self.frame += 1
-        if self.frame > self.current[1]:
-            self.frame = self.current[0]
-    # Para los objetos que no son loop, se quedan en el ultimo frame
-     else:
-        if self.frame < self.current[1]:
-            self.frame += 1
-        else:
-            self.animate = False 
-     self.image = self.atlas.getSprite(self.frame)
-
-    def update(self, dt):
+    def updateFrame(self):
+        last_frame = None # Devuelve None si no es animacion
+        #Actualizar frame si es animacion
         if self.animate :
-            self.time_elapsed += dt 
-            if self.time_elapsed >= self.time_animation:
-                self.nextFrame()
-                self.time_elapsed = 0
-        else:
-            pass
-        pos = (self.parent.pos[0] - self.camera_pos[0], self.parent.pos[1] - self.camera_pos[1])
+            self.time_elapsed = 0
+            last_frame = False
+            self.image = self._atlas.getSprite(self._states[self.current_state][self._current_frame])
+            self.rect = self.image.get_rect() #Actualizar rect del padre.
+            self.parent.pos.size = self.rect.size
+            self._current_frame = self._current_frame + 1
+            print(f"FRAME UPDATED. Current frame: {self._current_frame}")
+            if self._current_frame == len(self._states[self.current_state]):
+
+                last_frame = True
+        #Retornar flag de ultimo frame
+        return last_frame
+    
+    def update(self, dt):
+        pos = (self.parent.pos[0] - self._camera_pos[0], self.parent.pos[1] - self._camera_pos[1])
+        #Actualizar posicion
         self.rect.topleft = pos
 
+
     def cameraUpdate(self, pos):
-        self.camera_pos = pos
+        self._camera_pos = pos
 
 #Wrapper to make the surface in the tilemap behave like a sprite, so we can use the same camera logic for the map and the objects
 class Tile(pygame.sprite.Sprite):
@@ -130,22 +118,22 @@ class Tile(pygame.sprite.Sprite):
                 self.image.blit(layer, (0, 0))
         else:
             self.image = pygame.Surface((0, 0), pygame.SRCALPHA)
-        self.rect = self.image.get_rect(topleft=parent.pos)
+        self.rect = self.image.get_rect(topleft=parent.pos.topleft)
         self.camera_pos = (0, 0)
 
     def update(self, dt):
-        pos = (self.parent.pos[0] - self.camera_pos[0],
-               self.parent.pos[1] - self.camera_pos[1])
+        pos = (self.parent.pos[0] - self._camera_pos[0],
+               self.parent.pos[1] - self._camera_pos[1])
         self.rect.topleft = pos
 
     def cameraUpdate(self, pos):
-        self.camera_pos = pos
+        self._camera_pos = pos
 
 
 #Button may not be an component but a object instead consider refactor
 class Button(abstract.Object):
     def __init__(self, img, x=0, y=0, scale=1):
-        super().__init__("button",0)
+        super().__init__("button",(x, y))
         width = img.get_width()
         height = img.get_height()
         self.img = pygame.transform.scale(img, (int(width*scale), int(height * scale)))
@@ -227,7 +215,7 @@ class Movement():
 
         #actualizar posicion
         self.parent.pos.topleft = target
-        print(f"move target to: {target}")
+        #print(f"move target to: {target}")
 
     #Comprobar si es una posicion alcanzable en una matriz de mapa
     def reachable(self, x_pixel, y_pixel, matrix):
@@ -237,7 +225,7 @@ class Movement():
         scale = ResourceManager.getConfig().getint("video", "scale")
         grid_x = int(x_pixel // (tile_size*scale))
         grid_y = int(y_pixel // (tile_size*scale))
-        print(f"Grid reachability tested:({grid_x}, {grid_y})")
+        #print(f"Grid reachability tested:({grid_x}, {grid_y})")
         if 0 <= grid_x < len(matrix[0]) and 0 <= grid_y < len(matrix):
             return matrix[grid_y][grid_x]
         return False

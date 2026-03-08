@@ -10,11 +10,11 @@ class Switch(abstract.Object, abstract.Observable):
         self.is_pressed = False 
         self.target = target_object
         self.atlas = ResourceManager.getAtlas("interruptor")
-        self.graphic = components.Graphic(self, self.atlas, False, False)
+        self.graphic = components.Graphic(self, self.atlas,)
         
-        self.graphic.addName("switch-off", 0, 0) 
-        self.graphic.addName("switch-on", 1, 1)   
-        self.graphic.set("switch-off") 
+        self.graphic.addState("switch-off", [0]) 
+        self.graphic.addState("switch-on", [1])
+        self.graphic.setState("switch-off") 
         self.interact_range = 50
         
         self.already_pressed = False 
@@ -23,7 +23,7 @@ class Switch(abstract.Object, abstract.Observable):
         self.graphic.update(dt)
         
         p_vec = pygame.Vector2(player_pos)
-        s_vec = pygame.Vector2(self.pos)
+        s_vec = pygame.Vector2(self.pos.topleft)
         distance = s_vec.distance_to(p_vec)
 
         keys = pygame.key.get_pressed()
@@ -41,11 +41,11 @@ class Switch(abstract.Object, abstract.Observable):
         self.is_pressed = not self.is_pressed
         
         if self.is_pressed:
-            self.graphic.set("switch-on")
+            self.graphic.setState("switch-on")
             print("Interruptor encendido")
             self.notify(self, 'SWITCH_ON')
         else:
-            self.graphic.set("switch-off")
+            self.graphic.setState("switch-off")
             print("Interruptor apagado")
             if self.target: self.target.lock()
             self.notify(self, 'SWITCH_OFF')
