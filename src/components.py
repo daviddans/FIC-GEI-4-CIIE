@@ -229,3 +229,28 @@ class Movement():
         if 0 <= grid_x < len(matrix[0]) and 0 <= grid_y < len(matrix):
             return matrix[grid_y][grid_x]
         return False
+
+    
+class Health:
+    def __init__(self, max_hp=3):
+        self.max_hp = max_hp
+        self.current_hp = max_hp
+        self.is_dead = False
+
+    def take_damage(self, amount=1):
+        self.current_hp -= amount
+        if self.current_hp <= 0:
+            self.current_hp = 0
+            self.is_dead = True
+        return self.is_dead # Avisa si ha muerto
+    
+    def heal(self, amount=1):
+        """Aumenta la vida actual sin sobrepasar el máximo"""
+        if not self.is_dead:
+            self.current_hp = min(self.max_hp, self.current_hp + amount)
+            print(f"Curado. Vida actual: {self.current_hp}/{self.max_hp}")
+    
+    def reset(self):
+        """Devuelve al componente a su estado inicial"""
+        self.current_hp = self.max_hp
+        self.is_dead = False
