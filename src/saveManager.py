@@ -7,7 +7,7 @@ class SaveManager:
     @staticmethod
     def get_save_path():
         base_path = ResourceManager.getConfig().get("engine", "assets_path")
-        return os.path.join(base_path, "savegame.json")
+        return os.path.join(base_path, "saved_game.json")
 
     @staticmethod
     def save(scene):

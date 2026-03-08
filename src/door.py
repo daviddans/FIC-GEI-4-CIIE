@@ -77,6 +77,5 @@ class Door(abstract.Object, abstract.Observer):
 
     def unserialize(self, data):
         self.is_locked = data["is_locked"]
-        # Actualizar el gráfico para que coincida
         if self.is_locked: self.graphic.set("locked")
         else: self.graphic.set("unlocked")

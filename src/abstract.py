@@ -25,6 +25,7 @@ class Scene:
     def draw(self):
         raise NotImplementedError("Scene: " + self.name + ". Draw method not found, must be given an implementation.\n")
 # z_layer attribute may be deprecated as the blit order will now be handled by sprites and groups
+
 class Object:
     def __init__(self, name="unamed", pos = (0,0)):
         self.name = name
@@ -38,6 +39,13 @@ class Object:
     
     def draw(self):
         raise NotImplementedError("Object: " + self.name + ". Draw method not found, must be given an implementation.\n")
+    #para que las entidades guarden sus datos para el json de fase
+    def serialize(self):
+        raise NotImplementedError("Object: " + self.name + ". Serialize method not found, must be given an implementation.\n")
+    #para recuperar los datos guardados
+    def unserialize(self, data):
+        raise NotImplementedError("Object: " + self.name + ". Serialize method not found, must be given an implementation.\n")
+    
 
 class Observer(ABC):
     # Cualquier objeto que reacciona a algo (puertas)

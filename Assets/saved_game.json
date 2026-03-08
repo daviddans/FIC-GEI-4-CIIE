@@ -1,0 +1,25 @@
+{
+    "scene_name": "test",
+    "date": "08/03/2026 13:42:59",
+    "player_pos": [
+        551,
+        1100
+    ],
+    "entities": {
+        "player": {
+            "pos": [
+                551,
+                1100
+            ]
+        },
+        "switch1": {
+            "is_pressed": false
+        },
+        "door1": {
+            "is_locked": true
+        },
+        "door2": {
+            "is_locked": true
+        }
+    }
+}

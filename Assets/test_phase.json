@@ -1,0 +1,37 @@
+{
+    "phase_settings": {
+        "map_name": "testMap",
+        "background": "background.png",
+        "music": "musiquita.mp3"
+    },
+    "entities": [
+        { 
+            "id": "player", 
+            "type": "Player", 
+            "pos": [400, 200],
+            "args": { "speed": 0.5 } 
+        },
+        { 
+            "id": "switch1", 
+            "type": "Switch", 
+            "pos": [400, 300], 
+            "args": { "interact_range": 50 } 
+        },
+        { 
+            "id": "door1", 
+            "type": "Door", 
+            "pos": [600, 200], 
+            "args": { "is_locked": true } 
+        },
+        { 
+            "id": "door2", 
+            "type": "Door", 
+            "pos": [600, 400], 
+            "args": { "is_locked": true } 
+        }
+    ],
+    "connections": [
+        { "from": "switch1", "to": "door1" },
+        { "from": "switch1", "to": "door2" }
+    ]
+}

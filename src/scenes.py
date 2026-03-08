@@ -14,73 +14,28 @@ from datetime import datetime
 from saveManager import SaveManager
 
 class TestScene(abstract.Scene):
-    def __init__(self, game, name="unamed"):
+    def __init__(self, game, name=None):
         super().__init__(game, name)
-        
-     
+
+        self.entities_dict = {} 
+        self.testGroup = pygame.sprite.Group()
+
+
         config = ResourceManager.getConfig()
-        self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
-        
-       
+        assets_path = config.get("engine", "assets_path")
+        self.bg = pygame.image.load(assets_path + "background.png")
+
         self.map = objects.tileMap("testMap")
         self.camera = objects.Camera()
-        self.testGroup = pygame.sprite.Group()
+
         self.map.sprite.add(self.testGroup)
-        
-        #  carga de las entidades desde el json de fase
-        self.fase_data = ResourceManager.getJSON("phase.json")
-        self.entities_dict = {} 
-        
-        self.player = None
-
-        # Bucle de carga de entidades desde la Fase
-        for ent in self.fase_data.get("entities", []):
-            pos = ent["pos"]
-            tipo = ent["type"]
-            id_nombre = ent["id"]
-            constructor_args = ent.get("args", {})
-            
-            if tipo == "Switch":
-                # Inyectar pos y el resto de parámetros (is_pressed, etc.)
-                obj = switch.Switch(pos=pos, **constructor_args)
-                self.entities_dict[id_nombre] = obj
-                obj.graphic.add(self.testGroup)
-                
-            elif tipo == "Door":
-                # Inyectar pos y el resto (is_locked, etc.)
-                obj = door.Door(pos=pos, **constructor_args)
-                self.entities_dict[id_nombre] = obj
-                obj.graphic.add(self.testGroup)
-                
-            elif tipo == "Player":   
-                #player al ser único no se busca en el diccionario y se accede directamente
-                self.player = player.Player(pos=pos, **constructor_args)
-                self.player.graphic.add(self.testGroup)
-
-        if "switch1" in self.entities_dict:
-            if "door1" in self.entities_dict: 
-                self.entities_dict["switch1"].add_observer(self.entities_dict["door1"])
-            if "door2" in self.entities_dict: 
-                self.entities_dict["switch1"].add_observer(self.entities_dict["door2"])
-        
-        if "switch2" in self.entities_dict and "door3" in self.entities_dict:
-            self.entities_dict["switch2"].add_observer(self.entities_dict["door3"])
-
-    
-        # Árboles 
-       # for i in range(0, 10):
-    #        tree = objects.testTree()
-     #       tree.sprite.add(self.testGroup)
-            
-        self.player.graphic.add(self.testGroup)
-        for ent_obj in self.entities_dict.values():
-            ent_obj.graphic.add(self.testGroup)
-            
-     
         self.camera.addGroup(self.testGroup)
-        self.camera.setReference(self.player)
 
+        self.load_phase("test_phase.json")
         SaveManager.load(self)
+        if self.player:
+            self.camera.setReference(self.player)
+     
 
     def events(self, events):
         for event in events:
@@ -93,8 +48,9 @@ class TestScene(abstract.Scene):
     def update(self, dt):   
         self.player.update(dt, map=self.map.reachable)
         
-        for ent in self.entities_dict.values():
-            ent.update(dt, self.player.pos.topleft)
+        for ent_id, ent in self.entities_dict.items():
+            if ent_id != "player":
+                ent.update(dt, self.player.pos.topleft)
 
         self.testGroup.update(dt)
         self.camera.update(dt)
@@ -103,6 +59,36 @@ class TestScene(abstract.Scene):
         screen = self.game.screen
         screen.fill("black")
         self.camera.draw(screen)
+    
+    def load_phase(self, phase_name):
+        data = ResourceManager.getJSON(phase_name)
+        
+        # Mapeo de tipos a clases
+        classes = {
+            "Player": player.Player,
+            "Switch": switch.Switch,
+            "Door": door.Door
+        }
+
+        # Crear entidades
+        for ent in data.get("entities", []):
+            clase_obj = classes.get(ent["type"])
+            if clase_obj:
+                obj = clase_obj(pos=ent["pos"], **ent.get("args", {}))
+                
+                # guardar en el dict y añadir al grupo
+                self.entities_dict[ent["id"]] = obj
+                obj.graphic.add(self.testGroup)
+                
+                if ent["type"] == "Player":
+                    self.player = obj
+
+        # Conectar lógica 
+        for conn in data.get("connections", []):
+            emisor = self.entities_dict.get(conn["from"])
+            receptor = self.entities_dict.get(conn["to"])
+            if emisor and receptor:
+                emisor.add_observer(receptor)
 
     
 

@@ -31,4 +31,14 @@ class Player(abstract.Object):
     def events(self):
         pass
 
+    #para que el jugador guarde su posicion (de momento solo posicion)
+    def serialize(self):
+        return {
+            "pos": list(self.pos.topleft), 
+        }
     
+    # para recuperar la posición del diccionario de guardado
+    def unserialize(self, data):
+        if "pos" in data:         
+            self.pos.topleft = data["pos"]
+            self.graphic.rect.topleft = data["pos"]
