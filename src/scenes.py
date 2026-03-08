@@ -51,7 +51,6 @@ class TestScene(abstract.Scene):
                 self.game.quitGame()
 
     def update(self, dt):
-        #Para actualizar el player necesitamos dt y el mapa de alcanzabilidad
         self.player.update(dt, map=self.map.reachable)
         self.switch1.update(dt, self.player.pos.topleft)
         self.switch2.update(dt, self.player.pos.topleft)
