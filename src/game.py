@@ -6,7 +6,7 @@ from pygame.locals import *
 import scenes
 from configparser import ConfigParser
 from resourceManager import ResourceManager
-from hud import DebugHUD
+from debugHUD import DebugHUD
 
 #ToDo: implement game as singletone for more security.
 class Game:

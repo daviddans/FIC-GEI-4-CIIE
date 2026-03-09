@@ -67,8 +67,9 @@ class Graphic(pygame.sprite.Sprite):
             self._current_frame = 0
             self.image = self._atlas.getSprite(self._states[self.current_state][self._current_frame])
             self.rect = self.image.get_rect()
-            #Actualizar rect del padre.
-            self.parent.pos.size = self.rect.size
+            #Actualizar rect del padre (solo si tiene padre) porque por ejemplo el HUD no tiene padre como tal porque no es un objeto físico
+            if self.parent is not None:
+              self.parent.pos.size = self.rect.size
             updated_state = True
         return updated_state
     

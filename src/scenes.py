@@ -10,11 +10,13 @@ import utils
 from resourceManager import ResourceManager
 import switch
 import door
-
+from healthHUD import HealthHUD
+from shadow import Shadow
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         self.player = player.Player((400,200))
+        self.health_ui = HealthHUD(self.player)
         config = ResourceManager.getConfig()
         self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
         self.switch1 = switch.Switch(pos=(400, 300))
@@ -22,6 +24,7 @@ class TestScene(abstract.Scene):
         self.door1 = door.Door(pos=(600, 200), is_locked=True)
         self.door2 = door.Door(pos=(600, 400), is_locked=True)
         self.door3 = door.Door(pos=(600, 600), is_locked=True)
+        self.sin_luz = Shadow(self.player.pos.x + 50, self.player.pos.y, self.player)
 
         self.switch1.add_observer(self.door1)
         self.switch1.add_observer(self.door2)
@@ -40,6 +43,7 @@ class TestScene(abstract.Scene):
         self.door1.graphic.add(self.testGroup)
         self.door2.graphic.add(self.testGroup)
         self.door3.graphic.add(self.testGroup)
+        self.sin_luz.graphic.add(self.testGroup)
         self.camera.addGroup(self.testGroup)
         self.camera.setReference(self.player)
 
@@ -49,6 +53,11 @@ class TestScene(abstract.Scene):
         for event in events:
             if event.type == pygame.QUIT:
                 self.game.quitGame()
+            if event.type == pygame.KEYDOWN:
+                #prueba de que funciona el quitarle vida al player
+                if event.key == pygame.K_k:
+                    self.player.receive_hit(0.5)
+                    print(f"Vida actual: {self.player.health.current_hp}")
 
     def update(self, dt):
         self.player.update(dt, map=self.map.reachable)
@@ -57,9 +66,12 @@ class TestScene(abstract.Scene):
         self.door1.update(dt, self.player.pos.topleft)
         self.door2.update(dt, self.player.pos.topleft)
         self.door3.update(dt, self.player.pos.topleft)
+        #self.sin_luz.update(dt)
+        #if self.player.pos.colliderect(self.sin_luz.rect):
+       #     self.player.receive_hit(self.sin_luz.damage)
         self.testGroup.update(dt)
         self.camera.update(dt)
-        self.testGroup.update(dt)
+     
         
         
     def draw(self):
@@ -67,6 +79,8 @@ class TestScene(abstract.Scene):
         screen.fill("black")
         screen.fill("black")
         self.camera.draw(screen)
+        self.health_ui.draw(screen)
+        
 
     
 
@@ -99,6 +113,7 @@ class MainMenu(abstract.Scene):
         for event in events:
             if event.type == pygame.QUIT:
                 self.game.quitGame()
+            
 
     def draw(self):
         screen = self.game.screen
