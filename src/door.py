@@ -2,40 +2,54 @@ import abstract
 from resourceManager import ResourceManager
 import components
 import pygame
+from dialog import Dialog
+
 
 class Door(abstract.Object, abstract.Observer):
     def __init__(self, pos, is_locked=True):
         super().__init__("door", pos)
-        
         self.is_locked = is_locked
         self.is_open = False
-        self.proximity_range = 80 # Distancia para que se abra dsola
-        
+        self.proximity_range = 80
+
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas, animate=False, loop=False)
-        
-        self.graphic.addName("locked", 0, 0)   
-        self.graphic.addName("unlocked", 1, 1)  
-        self.graphic.addName("opening", 2, 3)   
-        
-        # Estado inicial
+        self.graphic.addName("locked", 0, 0)
+        self.graphic.addName("unlocked", 1, 1)
+        self.graphic.addName("opening", 2, 3)
+
         if self.is_locked:
             self.graphic.set("locked")
         else:
             self.graphic.set("unlocked")
 
+        # ── Diálogos propios de Door
+        self.dialogs = {
+            "DOOR_UNLOCKED": [
+                Dialog("Narrador", "La puerta cruje al desbloquearse."),
+            ],
+            "DOOR_OPENED": [
+                Dialog("Narrador", "El paso está libre."),
+            ],
+        }
+
+    def get_dialog(self, event: str) -> list[Dialog]:
+        """La escena llama a esto para obtener las líneas del diálogo."""
+        return self.dialogs.get(event, [])
+
     def on_notify(self, entity, event):
-        if event == 'SWITCH_ON':
+        if event == "SWITCH_ON":
             self.unlock()
-            print("Puerta desbloqueada (evento SWITCH_ON)")
-        elif event == 'SWITCH_OFF':
+        elif event == "SWITCH_OFF":
             self.lock()
-            print("Puerta bloqueada (evento SWITCH_OFF)")
 
     def unlock(self):
         self.is_locked = False
         self.graphic.set("unlocked")
-       
+        # Notificamos a la escena que esta puerta tiene un evento propio
+        # La puerta no es Observable en tu código original, así que
+        # el diálogo de DOOR_UNLOCKED lo lanza la escena cuando
+        # detecta que una puerta fue desbloqueada (ver scenes.py)
 
     def lock(self):
         self.is_locked = True
@@ -46,8 +60,6 @@ class Door(abstract.Object, abstract.Observer):
         self.graphic.update(dt)
         if self.is_locked:
             return
-
-        # Se calcula la distancia al jugador
         p_vec = pygame.Vector2(player_pos)
         d_vec = pygame.Vector2(self.pos)
         distance = d_vec.distance_to(p_vec)
@@ -61,13 +73,13 @@ class Door(abstract.Object, abstract.Observer):
 
     def open_door(self):
         self.is_open = True
-        self.graphic.animate = True 
+        self.graphic.animate = True
         self.graphic.loop = False
-        self.graphic.set("opening") # Pasa del frame 2 al 3
+        self.graphic.set("opening")
         print("Puerta abierta por proximidad.")
 
     def close_door(self):
         self.is_open = False
         self.graphic.animate = False
-        self.graphic.set("unlocked") # Vuelve al frame 1 (cerrada pero sin candado)
+        self.graphic.set("unlocked")
         print("Puerta cerrada.")
