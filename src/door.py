@@ -13,7 +13,7 @@ class Door(abstract.Object, abstract.Observer):
         
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas)
-        self.kwargs = kwargs
+        self.need_key = kwargs.get("need_key", "key1")
         self.graphic.addState("locked", [0])   
         self.graphic.addState("unlocked", [1])  
         self.graphic.addState("opening", [2,3])   
@@ -25,9 +25,9 @@ class Door(abstract.Object, abstract.Observer):
             self.graphic.setState("unlocked")
 
     def on_notify(self, entity, event):
-        if event == 'SWITCH_ON':
+        if event == 'SWITCH_ON' or event == 'KEY_PICKED':
             self.unlock()
-            print("Puerta desbloqueada (evento SWITCH_ON)")
+            print("Puerta desbloqueada (evento SWITCH_ON o KEY_PICKED)")
         elif event == 'SWITCH_OFF':
             self.lock()
             print("Puerta bloqueada (evento SWITCH_OFF)")
@@ -42,23 +42,30 @@ class Door(abstract.Object, abstract.Observer):
         self.is_open = False
         self.graphic.setState("locked")
 
-    def update(self, dt, player_pos):
+    def update(self, dt, player):
         self.graphic.update(dt)
-        if self.is_locked:
-            return
+        
+        p_vec = pygame.Vector2(player.pos.topleft)
+        d_vec = pygame.Vector2(self.pos.topleft)
+        distance = p_vec.distance_to(d_vec)
+        
+        # Lógica de desbloqueo (tecla O)
+        if self.is_locked and distance < 60:
+            if pygame.key.get_pressed()[pygame.K_o]:
+                if self.need_key in player.keys:
+                    self.unlock()
 
-        # Se calcula la distancia al jugador
-        p_vec = pygame.Vector2(player_pos)
-        d_vec = pygame.Vector2(self.pos)
-        distance = d_vec.distance_to(p_vec)
-
-        if distance < self.proximity_range:
-            if not self.is_open:
-                self.open_door()
-        else:
-            if self.is_open:
-                self.close_door()
-
+        # Lógica de apertura por proximidad (solo si no hay candado)
+        if not self.is_locked:
+            if distance < self.proximity_range:
+                # SOLO llamamos si no estaba ya abierta
+                if not self.is_open: 
+                    self.open_door()
+            else:
+                # SOLO llamamos si estaba abierta y ahora Nix se ha alejado
+                if self.is_open:
+                    self.close_door()
+                    
     def open_door(self):
         self.is_open = True
         self.graphic.animate = True 

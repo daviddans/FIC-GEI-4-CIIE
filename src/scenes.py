@@ -10,6 +10,7 @@ import utils
 from resourceManager import ResourceManager
 import switch
 import door
+from key import Key
 
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
@@ -22,6 +23,9 @@ class TestScene(abstract.Scene):
         self.door1 = door.Door(pos=(600, 200), is_locked=True)
         self.door2 = door.Door(pos=(600, 400), is_locked=True)
         self.door3 = door.Door(pos=(600, 600), is_locked=True)
+
+        self.key_item = Key(pos=(400, 200), key_id="key1")
+        self.key_item.add_observer(self.door1)
 
         self.switch1.add_observer(self.door1)
         self.switch1.add_observer(self.door2)
@@ -40,6 +44,7 @@ class TestScene(abstract.Scene):
         self.door1.graphic.add(self.testGroup)
         self.door2.graphic.add(self.testGroup)
         self.door3.graphic.add(self.testGroup)
+        self.key_item.graphic.add(self.testGroup)
         self.camera.addGroup(self.testGroup)
         self.camera.setReference(self.player)
 
@@ -51,15 +56,18 @@ class TestScene(abstract.Scene):
                 self.game.quitGame()
 
     def update(self, dt):
-        self.player.update(dt, map=self.map.reachable)
-        self.switch1.update(dt, self.player.pos.topleft)
-        self.switch2.update(dt, self.player.pos.topleft)
-        self.door1.update(dt, self.player.pos.topleft)
-        self.door2.update(dt, self.player.pos.topleft)
-        self.door3.update(dt, self.player.pos.topleft)
-        self.testGroup.update(dt)
-        self.camera.update(dt)
-        self.testGroup.update(dt)
+     self.player.update(dt, map=self.map.reachable)
+    
+     self.door1.update(dt, self.player) 
+     self.door2.update(dt, self.player)
+     self.door3.update(dt, self.player)
+    
+     # La llave también necesita al player para darle el ID al recogerla
+     if self.key_item.is_active:
+        self.key_item.update(dt, self.player) 
+
+     self.testGroup.update(dt)
+     self.camera.update(dt)
         
         
     def draw(self):

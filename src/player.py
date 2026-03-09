@@ -20,6 +20,7 @@ class Player(abstract.Object):
         self.animation_end = False
         self.animation_time_elapsed = 0
         self.move_animation_speed = 400
+        self.keys = [] #inventario de llaves
 
     def update(self, dt, map=None):
         self.input.update()
