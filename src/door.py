@@ -4,7 +4,7 @@ import components
 import pygame
 
 class Door(abstract.Object, abstract.Observer):
-    def __init__(self, pos, is_locked=True):
+    def __init__(self, pos, is_locked=True, **kwargs):
         super().__init__("door", pos)
         
         self.is_locked = is_locked
@@ -13,7 +13,7 @@ class Door(abstract.Object, abstract.Observer):
         
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas)
-        
+        self.kwargs = kwargs
         self.graphic.addState("locked", [0])   
         self.graphic.addState("unlocked", [1])  
         self.graphic.addState("opening", [2,3])   
@@ -71,3 +71,16 @@ class Door(abstract.Object, abstract.Observer):
         self.graphic.animate = False
         self.graphic.setState("unlocked") # Vuelve al frame 1 (cerrada pero sin candado)
         print("Puerta cerrada.")
+
+    def interact(self, player):
+     required_key = self.kwargs.get("need_key", "default_key")
+    
+     if required_key in player.keys:
+        self.open_door() 
+        
+        # se borra la llave de la lista del jugador
+        player.keys.remove(required_key)
+        
+        print(f"Puerta abierta. La llave {required_key} se ha gastado.")
+     else:
+        print("Esta puerta está cerrada. Necesitas una llave.")
