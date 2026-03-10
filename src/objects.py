@@ -10,7 +10,6 @@ class testTree(abstract.Object):
     def __init__(self):
         super().__init__()
         config = ResourceManager.getConfig()
-        image = pygame.image.load(config.get("engine", "assets_path") + "arbol.png")
         self.pos.topleft = (randint(-100, 1000), randint(-100, 1000))
         self.atlas = ResourceManager.getAtlas("arbol")
         self.sprite = components.Graphic(self,self.atlas)
