@@ -37,11 +37,14 @@ Implentacion de la clase grafica como una maquina de estados
 Cada estado tiene una lista de ids 
 Durante el update se ira cambiando entre cada id mostrando el subsurface correspondiente del Atlas
 El update devolvera True si se alcanzo el ultimo frame o es unoe
+
+El offset nos permite modificar la posicion de dibujado respecto al padre ( ideal pa la luz)
+primary es un fix pocho, para que un objeto pueda generar varios sprites pero no todos modifiquen su hitbox. (Ej: la luz)
 """
 
 
 class Graphic(pygame.sprite.Sprite):
-    def __init__(self, parent:abstract.Object, atlas:Atlas):
+    def __init__(self, parent:abstract.Object, atlas:Atlas, offset= (0, 0), primary=True):
         super().__init__()
         self.image = None
         self.rect = None
@@ -51,7 +54,9 @@ class Graphic(pygame.sprite.Sprite):
         self.animate= False
         self.parent = parent
         self._atlas = atlas
+        self._offset = offset
         self._camera_pos = (0,0)
+        self.primary = primary
         
     def addState(self, name, ids:list[int]):
         if len(ids) <= 0 :
@@ -67,8 +72,7 @@ class Graphic(pygame.sprite.Sprite):
             self._current_frame = 0
             self.image = self._atlas.getSprite(self._states[self.current_state][self._current_frame])
             self.rect = self.image.get_rect()
-            #Actualizar rect del padre.
-            self.parent.pos.size = self.rect.size
+            if self.primary : self.parent.pos.size = self.rect.size #Actualizar rect del padre.
             updated_state = True
         return updated_state
     
@@ -82,10 +86,9 @@ class Graphic(pygame.sprite.Sprite):
             self.time_elapsed = 0
             last_frame = False
             self.image = self._atlas.getSprite(self._states[self.current_state][self._current_frame])
-            self.rect = self.image.get_rect() #Actualizar rect del padre.
-            self.parent.pos.size = self.rect.size
+            self.rect = self.image.get_rect() 
+            if self.primary : self.parent.pos.size = self.rect.size #Actualizar rect del padre.
             self._current_frame = self._current_frame + 1
-            print(f"FRAME UPDATED. Current frame: {self._current_frame}")
             if self._current_frame == len(self._states[self.current_state]):
 
                 last_frame = True
@@ -93,7 +96,7 @@ class Graphic(pygame.sprite.Sprite):
         return last_frame
     
     def update(self, dt):
-        pos = (self.parent.pos[0] - self._camera_pos[0], self.parent.pos[1] - self._camera_pos[1])
+        pos = (self.parent.pos[0] - self._camera_pos[0] + self._offset[0], self.parent.pos[1] - self._camera_pos[1] + self._offset[1])
         #Actualizar posicion
         self.rect.topleft = pos
 
@@ -164,9 +167,6 @@ class Input():
         return self.direction
     
     def update(self):
-        #esto es un poco sucio porque fuerza a pygame a actualizar su estado, hay que revisar como hacerlo bien porque no se mueve el player si no
-        pygame.event.pump() 
-        
         keys = pygame.key.get_pressed()
         
         x = 0
@@ -186,31 +186,31 @@ class Movement():
     def __init__(self, parent:abstract.Object, speed):
         self.parent = parent
         self.speed = speed
-     
-    def update(self, vector, dt, map):
         scale = ResourceManager.getConfig().getint("video", "scale")
-        correction = 3 * scale # Correccion para evitar errores pixel perfect
+        self.correction = 3 * scale # Correccion para evitar errores pixel perfect
+
+    def update(self, vector, dt, map):
         #Calcular movimiento
         move = (vector.x * self.speed * dt, vector.y *self.speed * dt)
         #Calcular posicion resultante
         target = (self.parent.pos.left + move[0], self.parent.pos.top + move[1])
         #Comprobar que todas las esquinas vayan a una casilla accesible
         if vector.x > 0 : #Derecha
-            if ( not self.reachable(self.parent.pos.right + move[0], self.parent.pos.top + correction, map) 
-                or not self.reachable(self.parent.pos.right + move[0], self.parent.pos.bottom - correction, map) ):
+            if ( not self.reachable(self.parent.pos.right + move[0], self.parent.pos.top + self.correction, map) 
+                or not self.reachable(self.parent.pos.right + move[0], self.parent.pos.bottom - self.correction, map) ):
                 target = (self.parent.pos.left, target[1])
         elif vector.x < 0: #Izquierda
-            if ( not self.reachable(self.parent.pos.left + move[0], self.parent.pos.top + correction, map) 
-                or not self.reachable(self.parent.pos.left + move[0], self.parent.pos.bottom - correction, map) ):
+            if ( not self.reachable(self.parent.pos.left + move[0], self.parent.pos.top + self.correction, map) 
+                or not self.reachable(self.parent.pos.left + move[0], self.parent.pos.bottom - self.correction, map) ):
                 target = (self.parent.pos.left, target[1])
 
         if vector.y > 0 : #Abajo
-            if ( not self.reachable(self.parent.pos.left + correction, self.parent.pos.bottom + move[1], map) 
-                or not self.reachable(self.parent.pos.right - correction, self.parent.pos.bottom + move[1], map) ):
+            if ( not self.reachable(self.parent.pos.left + self.correction, self.parent.pos.bottom + move[1], map) 
+                or not self.reachable(self.parent.pos.right - self.correction, self.parent.pos.bottom + move[1], map) ):
                 target = (target[0], self.parent.pos.top)
         elif vector.y < 0 : #Arriba
-            if ( not self.reachable(self.parent.pos.left + correction, self.parent.pos.top + move[1], map) 
-                or not self.reachable(self.parent.pos.right - correction, self.parent.pos.top + move[1], map) ):
+            if ( not self.reachable(self.parent.pos.left + self.correction, self.parent.pos.top + move[1], map) 
+                or not self.reachable(self.parent.pos.right - self.correction, self.parent.pos.top + move[1], map) ):
                  target = (target[0], self.parent.pos.top)
 
         #actualizar posicion

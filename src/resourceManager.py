@@ -79,7 +79,7 @@ class ResourceManager:
                     print(f"Error loading image '{full_path + ext}' : {e}")
                     raise e
         if image is None:
-            raise FileNotFoundError(f"No se encontró el archivo de imagen para el atlas '{name}'")
+            raise FileNotFoundError(f"No se encontró el archivo de imagen para el atlas {name}")
         try:
             cood = json.load(open(full_path + ".json", "r"))
         except Exception as e:
