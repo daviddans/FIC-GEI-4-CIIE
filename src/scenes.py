@@ -14,9 +14,8 @@ import door
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
-        self.player = player.Player((2000,2000))
+        self.player = player.Player((200,200))
         config = ResourceManager.getConfig()
-        self.bg = pygame.image.load(config.get("PATH","maps_path") + "background.png")
         self.switch1 = switch.Switch(pos=(400, 300))
         self.switch2 = switch.Switch(pos=(800, 300))
         self.door1 = door.Door(pos=(600, 200), is_locked=True)
@@ -29,7 +28,7 @@ class TestScene(abstract.Scene):
 
         self.camera = objects.Camera()
         self.testGroup = pygame.sprite.Group()
-        self.map = objects.tileMap("TestMap2")
+        self.map = objects.tileMap("TestMap")
         self.map.sprite.add(self.testGroup)
         for i in range(0,10):
             tree = objects.testTree()
