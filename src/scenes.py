@@ -22,19 +22,17 @@ class TestScene(abstract.Scene):
 
 
         config = ResourceManager.getConfig()
-        assets_path = config.get("engine", "assets_path")
-        self.bg = pygame.image.load(assets_path + "background.png")
 
-        self.map = objects.tileMap("testMap")
+        self.map = objects.tileMap("TestMap")
         self.camera = objects.Camera()
 
         self.map.sprite.add(self.testGroup)
         self.camera.addGroup(self.testGroup)
 
         self.load_from_tiled()
-        SaveManager.load(self)
         if self.player:
             self.camera.setReference(self.player)
+        SaveManager.load(self)
      
 
     def events(self, events):

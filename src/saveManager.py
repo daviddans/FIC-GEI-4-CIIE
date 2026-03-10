@@ -6,7 +6,7 @@ from resourceManager import ResourceManager
 class SaveManager:
     @staticmethod
     def get_save_path():
-        base_path = ResourceManager.getConfig().get("engine", "assets_path")
+        base_path = ResourceManager.getConfig().get("PATH", "user_path")
         return os.path.join(base_path, "saved_game.json")
 
     @staticmethod
@@ -18,7 +18,6 @@ class SaveManager:
         data = {
             "scene_name": scene.name,
             "date": date_str, 
-            "player_pos": list(scene.player.pos.topleft),
             "entities": {
                 name: obj.serialize() for name, obj in scene.entities_dict.items()
             }
