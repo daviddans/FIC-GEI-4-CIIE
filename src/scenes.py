@@ -45,7 +45,7 @@ class TestScene(abstract.Scene):
                 if event.key == pygame.K_g: 
                     SaveManager.save(self)
 
-    def update(self, dt):   
+    def update(self, dt):
         self.player.update(dt, map=self.map.reachable)
         
         for ent_id, ent in self.entities_dict.items():

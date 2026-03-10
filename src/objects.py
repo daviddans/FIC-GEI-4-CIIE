@@ -11,18 +11,18 @@ class testTree(abstract.Object):
         super().__init__()
         config = ResourceManager.getConfig()
         image = pygame.image.load(config.get("engine", "assets_path") + "arbol.png")
-        self.pos = (randint(-100, 1000), randint(-100, 1000))
+        self.pos.topleft = (randint(-100, 1000), randint(-100, 1000))
         self.atlas = ResourceManager.getAtlas("arbol")
-        self.sprite = components.Graphic(self,self.atlas, False, False)
-        self.sprite.addName("tree", 0,0)
-        self.sprite.set("tree")
+        self.sprite = components.Graphic(self,self.atlas)
+        self.sprite.addState("tree", [0])
+        self.sprite.setState("tree")
 
 class Camera(abstract.Object):
     def __init__(self, name="camera", pos=(0,0)):
         super().__init__(name, pos)
         self.spriteGroups = list()
         size = (ResourceManager.getConfig().getint("video","xres"), ResourceManager.getConfig().getint("video","yres"))
-        self.box = pygame.Rect(self.pos, size)
+        self.box = pygame.Rect(self.pos.topleft, size) # AL emplear un rect en la posicion esto es redundandte NEEDFIX
         print("Camera area:" + str(self.box))
         self.bounding =  self.box.scale_by(0.2, 0.2)
         print("Bound area:" + str(self.bounding))
