@@ -69,7 +69,7 @@ class Door(abstract.Object, abstract.Observer):
     def close_door(self):
         self.is_open = False
         self.graphic.animate = False
-        self.graphic.set("unlocked") # Vuelve al frame 1 (cerrada pero sin candado)
+        self.graphic.setState("unlocked") # Vuelve al frame 1 (cerrada pero sin candado)
         print("Puerta cerrada.")
 
     def serialize(self):
@@ -77,5 +77,5 @@ class Door(abstract.Object, abstract.Observer):
 
     def unserialize(self, data):
         self.is_locked = data["is_locked"]
-        if self.is_locked: self.graphic.set("locked")
-        else: self.graphic.set("unlocked")
+        if self.is_locked: self.graphic.setState("locked")
+        else: self.graphic.setState("unlocked")

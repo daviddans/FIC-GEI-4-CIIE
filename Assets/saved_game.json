@@ -1,15 +1,15 @@
 {
     "scene_name": "test",
-    "date": "08/03/2026 13:42:59",
+    "date": "10/03/2026 22:13:37",
     "player_pos": [
-        551,
-        1100
+        1049,
+        1189
     ],
     "entities": {
         "player": {
             "pos": [
-                551,
-                1100
+                1049,
+                1189
             ]
         },
         "switch1": {
@@ -19,6 +19,12 @@
             "is_locked": true
         },
         "door2": {
+            "is_locked": true
+        },
+        "switch2": {
+            "is_pressed": false
+        },
+        "door3": {
             "is_locked": true
         }
     }

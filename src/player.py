@@ -8,8 +8,7 @@ from resourceManager import ResourceManager
 
 class Player(abstract.Object):
     def __init__(self, pos=(0,0), speed=0.5):
-        super().__init__("player", 1)
-        self.pos = list(pos)  
+        super().__init__("player", pos) 
         self.atlas = ResourceManager.getAtlas("player-base")
         self.graphic = components.Graphic(self, self.atlas)
         self.graphic.addState("move", [1,2])

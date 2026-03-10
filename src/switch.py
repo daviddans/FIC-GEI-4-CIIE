@@ -19,9 +19,9 @@ class Switch(abstract.Object, abstract.Observable):
         self.interact_range = 50
         
         if self.is_pressed:
-            self.graphic.set("switch-on")
+            self.graphic.setState("switch-on")
         else:
-            self.graphic.set("switch-off")
+            self.graphic.setState("switch-off")
             
      
 
@@ -59,5 +59,5 @@ class Switch(abstract.Object, abstract.Observable):
 
     def unserialize(self, data):
         self.is_pressed = data["is_pressed"]
-        if self.is_pressed: self.graphic.set("switch-on")
-        else: self.graphic.set("switch-off")
+        if self.is_pressed: self.graphic.setState("switch-on")
+        else: self.graphic.setState("switch-off")
