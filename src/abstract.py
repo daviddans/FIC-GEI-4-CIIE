@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+import pygame
 
 class Scene: 
     def __init__(self, game, name="unamed"):
@@ -24,11 +24,11 @@ class Scene:
     
     def draw(self):
         raise NotImplementedError("Scene: " + self.name + ". Draw method not found, must be given an implementation.\n")
-# z_layer attribute may be deprecated as the blit order will now be handled by sprites and groups
+
 class Object:
     def __init__(self, name="unamed", pos = (0,0)):
         self.name = name
-        self.pos = pos
+        self.pos = pygame.rect.Rect(pos, (0,0))
   
     def update(self, dt):
         raise NotImplementedError("Object: " + self.name + ". Update method not found, must be given an implementation.\n")

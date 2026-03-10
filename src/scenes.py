@@ -1,3 +1,5 @@
+# Script containing the logic for the various scenes composing the game.
+
 import pygame
 import components
 import player
@@ -10,14 +12,12 @@ from dialog import Dialog, DialogManager, DialogScene
 import switch
 import door
 
-
-class TestScene(abstract.Scene, abstract.Observer):
+class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
-        abstract.Scene.__init__(self, game, name)
-        self.player = player.Player((400, 200))
-        config = ResourceManager.getConfig()
-        self.bg = pygame.image.load(config.get("engine", "assets_path") + "background.png")
-
+        super().__init__(game, name)
+        self.light_screen = self.game.screen.copy()
+        self.lights = pygame.sprite.Group()
+        self.player = player.Player((200,200))
         self.switch1 = switch.Switch(pos=(400, 300))
         self.switch2 = switch.Switch(pos=(800, 300))
         self.door1 = door.Door(pos=(600, 200), is_locked=True)
@@ -37,18 +37,21 @@ class TestScene(abstract.Scene, abstract.Observer):
 
         self.camera = objects.Camera()
         self.testGroup = pygame.sprite.Group()
-        self.map = objects.tileMap("testMap")
+        self.map = objects.tileMap("TestMap")
         self.map.sprite.add(self.testGroup)
-        for i in range(0, 10):
+        for i in range(0,1):
             tree = objects.testTree()
             tree.sprite.add(self.testGroup)
         self.player.graphic.add(self.testGroup)
+        self.player.light.add(self.lights)
         self.switch1.graphic.add(self.testGroup)
         self.switch2.graphic.add(self.testGroup)
         self.door1.graphic.add(self.testGroup)
         self.door2.graphic.add(self.testGroup)
         self.door3.graphic.add(self.testGroup)
+
         self.camera.addGroup(self.testGroup)
+        self.camera.addGroup(self.lights)
         self.camera.setReference(self.player)
 
     def on_notify(self, entity, event: str):
@@ -90,14 +93,20 @@ class TestScene(abstract.Scene, abstract.Observer):
         self.door2.update(dt, self.player.pos.topleft)
         self.door3.update(dt, self.player.pos.topleft)
         self.testGroup.update(dt)
+        self.lights.update(dt)
         self.camera.update(dt)
         self.testGroup.update(dt)
 
     def draw(self):
+        self.light_screen.fill("grey10")
         screen = self.game.screen
         screen.fill("black")
+        self.testGroup.draw(screen)
+        self.lights.draw(self.light_screen)
+        screen.blit(self.light_screen,(0, 0), special_flags=pygame.BLEND_MULT) #cast pseudo light
         self.camera.draw(screen)
 
+    
 
 class MainMenu(abstract.Scene):
     def __init__(self, game, name="unamed"):
@@ -107,6 +116,7 @@ class MainMenu(abstract.Scene):
         self.audio.load_sound("pum", "choque.mp3")
         self.audio.play_music()
         text = pygame.font.SysFont("Arial", 32).render("Play", False, (100, 100, 100))
+        text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
         self.playButton = components.Button(text, 100, 100, 3)
         text = pygame.font.SysFont("Arial", 32).render("Settings", False, (100, 100, 100))
         self.settingsButton = components.Button(text, 100, 200, 3)

@@ -2,23 +2,22 @@ import abstract
 from resourceManager import ResourceManager
 import components
 import pygame
-from dialog import Dialog
-
 
 class Switch(abstract.Object, abstract.Observable):
     def __init__(self, pos, target_object=None):
         abstract.Object.__init__(self, "switch", pos)
         abstract.Observable.__init__(self)
-        self.is_pressed = False
+        self.is_pressed = False 
         self.target = target_object
         self.atlas = ResourceManager.getAtlas("interruptor")
-        self.graphic = components.Graphic(self, self.atlas, False, False)
+        self.graphic = components.Graphic(self, self.atlas,)
 
-        self.graphic.addName("switch-off", 0, 0)
-        self.graphic.addName("switch-on", 1, 1)
-        self.graphic.set("switch-off")
+        self.graphic.addState("switch-off", [0])
+        self.graphic.addState("switch-on", [1])
+        self.graphic.setState("switch-off")
         self.interact_range = 50
-        self.already_pressed = False
+        
+        self.already_pressed = False 
 
         # ── Diálogos propios del Switch ───────
         # Cada instancia puede sobreescribir estas listas para
@@ -39,9 +38,11 @@ class Switch(abstract.Object, abstract.Observable):
 
     def update(self, dt, player_pos):
         self.graphic.update(dt)
+        
         p_vec = pygame.Vector2(player_pos)
-        s_vec = pygame.Vector2(self.pos)
+        s_vec = pygame.Vector2(self.pos.topleft)
         distance = s_vec.distance_to(p_vec)
+
         keys = pygame.key.get_pressed()
 
         if distance < self.interact_range and keys[pygame.K_e]:
@@ -52,13 +53,15 @@ class Switch(abstract.Object, abstract.Observable):
             self.already_pressed = False
 
     def toggle(self):
+        # Cambiar al estado contrario si ya está encendido
         self.is_pressed = not self.is_pressed
+        
         if self.is_pressed:
-            self.graphic.set("switch-on")
+            self.graphic.setState("switch-on")
             print("Interruptor encendido")
             self.notify(self, "SWITCH_ON")
         else:
-            self.graphic.set("switch-off")
+            self.graphic.setState("switch-off")
             print("Interruptor apagado")
             if self.target:
                 self.target.lock()
