@@ -48,7 +48,7 @@ class ResourceManager:
             return tmx
         else:
             return cls._resources[name]
-    
+    #Gets a json file 
     @classmethod
     def getJSON(cls, name):
         if name not in cls._resources:

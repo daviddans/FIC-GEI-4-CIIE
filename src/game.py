@@ -15,7 +15,9 @@ class Game:
         # Buffer: 4096 (recomendado en apuntes para evitar cortes)
         pygame.mixer.pre_init(44100, -16, 2, 4096)
         self.config = ResourceManager.getConfig()
-        self.screen = pygame.display.set_mode((self.config.getint("video", "xres"), self.config.getint("video", "yres")), 0, 32)
+        self.screen_flags = pygame.RESIZABLE
+        if self.config.getint("video", "fullscreen"): self.screen_flags |= pygame.FULLSCREEN
+        self.screen = pygame.display.set_mode((self.config.getint("video", "xres"), self.config.getint("video", "yres")),flags=self.screen_flags)
         self.sceneStack = [scenes.MainMenu(self,"mainmenu")]
         self.clock = pygame.time.Clock()
 
@@ -41,6 +43,7 @@ class Game:
             scene.events(events)
             scene.update(dt)
             scene.draw()
+            pygame.display.flip()
 
             # HUD encima de todo
             # Buscamos el player en el stack (puede estar en una escena por debajo del diálogo)
@@ -60,7 +63,7 @@ class Game:
                 dialogo_activo=dialogo_activo
             )
 
-            pygame.display.update()
+            #pygame.display.update()
 
     def run(self):
         while (len(self.sceneStack) > 0):

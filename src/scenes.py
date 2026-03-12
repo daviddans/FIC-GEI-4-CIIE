@@ -150,6 +150,5 @@ class MainMenu(abstract.Scene):
         self.playButton.draw(screen)
         self.settingsButton.draw(screen)
         self.quitButton.draw(screen)
-        pygame.display.update()
 
 

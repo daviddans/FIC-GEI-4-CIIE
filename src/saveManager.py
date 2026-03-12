@@ -45,9 +45,6 @@ class SaveManager:
         if "date" in data:
             print(f" Cargando partida: {data['date']}")
 
-        # restaurar la posición de Nix
-        scene.player.pos.topleft = data["player_pos"]
-
         # restaurar el estado de cada objeto
         for name, state in data["entities"].items():
             if name in scene.entities_dict:
