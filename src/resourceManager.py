@@ -57,8 +57,21 @@ class ResourceManager:
             return json_data
         else:
             return cls._resources[name]
+    #Gets a font for render text
+    @classmethod
+    def getFont(cls, name, size):
+        key = f"font:{name}:{size}"
+        if key not in cls._resources:
+            try:
+                # Intenta cargar fuente del sistema
+                font = pygame.font.SysFont(name, size)
+            except Exception as e:
+                print(f"Error cargando fuente '{name}' tamaño {size}: {e}")
+                raise e
+            cls._resources[key] = font
+        return cls._resources[key]
 
-    #Cargar un archivo tmx
+    #Cargar de disco un archivo tmx
     def _read_TileMap(name):
         base_path = ResourceManager.getConfig().get("PATH", "maps_path")
         full_path = os.path.join(base_path, name +".tmx")
@@ -71,7 +84,7 @@ class ResourceManager:
                 raise e
         return tmx_data
     
-    #Cargar archivos que componen un atlas.
+    #Cargar de disco archivos que componen un atlas.
     def _read_Atlas(name):
         base_path = ResourceManager.getConfig().get("PATH", "sprites_path")
         full_path = os.path.join(base_path, name)
@@ -97,7 +110,7 @@ class ResourceManager:
             raise FileNotFoundError(f"No se encontró el archivo de coordenadas para el atlas '{name}'")
         return image, cood
     
-    #Cargar archivos de sonido
+    #Cargar de disco archivos de sonido
     def _read_Sound(name):
         base_path = ResourceManager.getConfig().get("PATH", "sounds_path")
         full_path = os.path.join(base_path, name)
@@ -112,7 +125,7 @@ class ResourceManager:
                     raise e
         raise FileNotFoundError(f"No se encontró el archivo de sonido para '{name}'")
 
-    #Leer archivo de configuración
+    #Leer archivo de configuración de disco
     def _read_Config():
         conf = ConfigParser()
         try:
@@ -121,7 +134,7 @@ class ResourceManager:
             raise FileNotFoundError("No se encuentra config.ini")
         return conf
     
-    @staticmethod
+    #Leer un json de disco
     def _read_JSON(name):
         # Usamos el config para saber dónde están los assets
         base_path = ResourceManager.getConfig().get("engine", "assets_path")
@@ -140,37 +153,3 @@ class ResourceManager:
         else:
             raise FileNotFoundError(f"No se encontró el archivo JSON en: {full_path}")
     
-
-""""
-### Funciones antiguas de ale, las conservo de momento por si aca ###
-    def get(cls, key):
-        if key not in cls._resources:
-            if "." in key: #si no se ha registrado el recurso, se intenta buscar en disco
-                cls._resources[key] = cls.load_from_disk(key)
-            else:
-                print(f"Error: El recurso '{key}' no está registrado ni es un archivo.")
-                return None
-        return cls._resources[key]
-    
-    def _register(cls, key, instance):
-        #almacena instancias en _resources
-        cls._resources[key] = instance
-    
-    #para recursos estáticos tipo imagenes, jsons y sonidos (de momento)
-    def load_from_disk(cls, path):
-
-        base_path = cls.get("config").get("engine", "assets_path")
-        full_path = os.path.join(base_path, path)
-        extension = path.split('.')[-1].lower()
-        
-        if extension in ['png', 'jpg']:
-            return pygame.image.load(full_path).convert_alpha()
-        elif extension == 'json':
-            with open(full_path, 'r') as f:
-                return json.load(f)
-            
-        elif extension in ['wav', 'ogg', 'mp3']:
-            return pygame.mixer.Sound(full_path)
-        
-        raise Exception(f"Formato no soportado: {extension}")
-    """
