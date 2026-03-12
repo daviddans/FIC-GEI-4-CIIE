@@ -52,7 +52,7 @@ class ResourceManager:
 
     #Cargar un archivo tmx
     def _read_TileMap(name):
-        base_path = ResourceManager.getConfig().get("engine", "assets_path")
+        base_path = ResourceManager.getConfig().get("PATH", "maps_path")
         full_path = os.path.join(base_path, name +".tmx")
         if os.path.exists(full_path):
             try:
@@ -65,7 +65,7 @@ class ResourceManager:
     
     #Cargar archivos que componen un atlas.
     def _read_Atlas(name):
-        base_path = ResourceManager.getConfig().get("engine", "assets_path")
+        base_path = ResourceManager.getConfig().get("PATH", "sprites_path")
         full_path = os.path.join(base_path, name)
         image = None
         cood = None
@@ -91,7 +91,7 @@ class ResourceManager:
     
     #Cargar archivos de sonido
     def _read_Sound(name):
-        base_path = ResourceManager.getConfig().get("engine", "assets_path")
+        base_path = ResourceManager.getConfig().get("PATH", "sounds_path")
         full_path = os.path.join(base_path, name)
         extensions = ['.wav', '.ogg', '.mp3']
         for ext in extensions:
