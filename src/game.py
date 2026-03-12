@@ -6,7 +6,6 @@ from pygame.locals import *
 import scenes
 from configparser import ConfigParser
 from resourceManager import ResourceManager
-from hud import DebugHUD
 
 #ToDo: implement game as singletone for more security.
 class Game:
@@ -15,18 +14,11 @@ class Game:
         # Buffer: 4096 (recomendado en apuntes para evitar cortes)
         pygame.mixer.pre_init(44100, -16, 2, 4096)
         self.config = ResourceManager.getConfig()
-        self.screen_flags = pygame.RESIZABLE
+        self.screen_flags = pygame.SHOWN | pygame.NOFRAME
         if self.config.getint("video", "fullscreen"): self.screen_flags |= pygame.FULLSCREEN
         self.screen = pygame.display.set_mode((self.config.getint("video", "xres"), self.config.getint("video", "yres")),flags=self.screen_flags)
         self.sceneStack = [scenes.MainMenu(self,"MainMenu")]
         self.clock = pygame.time.Clock()
-
-        # HUD de debug
-        self.hud = DebugHUD(
-            self.screen,
-            self.config.getint("video", "xres"),
-            self.config.getint("video", "xres")
-        )
         
     def game_loop(self,scene):  
         self.sceneQuitFlg = False
@@ -40,7 +32,7 @@ class Game:
             scene.draw()
             pygame.display.flip()
 
-            #print(f"FPS:{1 / dt*1000}")
+            if dt != 0 : print(f"FPS:{1 / dt * 1000}")
 
     def run(self):
         while (len(self.sceneStack) > 0):

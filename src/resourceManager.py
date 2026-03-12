@@ -57,16 +57,16 @@ class ResourceManager:
             return json_data
         else:
             return cls._resources[name]
-    #Gets a font for render text
     @classmethod
     def getFont(cls, name, size):
         key = f"font:{name}:{size}"
         if key not in cls._resources:
+            base_path = cls.getConfig().get("PATH", "fonts_path")
+            full_path = os.path.join(base_path, name)
             try:
-                # Intenta cargar fuente del sistema
-                font = pygame.font.SysFont(name, size)
+                font = pygame.font.Font(full_path, size)
             except Exception as e:
-                print(f"Error cargando fuente '{name}' tamaño {size}: {e}")
+                print(f"Error cargando fuente '{full_path}': {e}")
                 raise e
             cls._resources[key] = font
         return cls._resources[key]

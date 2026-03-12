@@ -120,15 +120,10 @@ class TextButton(abstract.Object):
         btn.graphic.setState("idle")
     """
  
-    def __init__(self, font: pygame.font.Font, label: str, x: int, y: int):
+    def __init__(self, font: pygame.font.Font, label: str, x: int, y: int, antialias = False):
         super().__init__("text_button", (x, y))
- 
-        scale = ResourceManager.getConfig().getint("video", "scale")
- 
         # Renderizar y escalar igual que hace Atlas con los sprites
-        raw_surf = font.render(label, False, (80, 80, 80))
-        w, h = raw_surf.get_size()
-        text_surf = pygame.transform.scale(raw_surf, (w * scale, h * scale))
+        text_surf = font.render(label, color=(80, 80, 80), antialias=antialias)
  
         # Graphic sin atlas: sobreescribimos image y rect directamente
         self.graphic = components.Graphic(self, None)

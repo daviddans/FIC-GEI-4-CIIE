@@ -27,9 +27,6 @@ class TestScene(abstract.Scene):
         self.entities_dict = {}  
         self.light_screen = self.game.screen.copy()
 
-
-        config = ResourceManager.getConfig()
-
         self.map = objects.tileMap("TestMap")
         self.camera = objects.Camera()
 
@@ -49,8 +46,8 @@ class TestScene(abstract.Scene):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_g: 
                     SaveManager.save(self)
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_F3:
-                    self.hud.toggle()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.game.switchScene(PauseScene(self.game, "Pause-Scene"))
         
     def update(self, dt):
         self.player.update(dt, map=self.map.reachable)
@@ -128,37 +125,26 @@ class MainMenu(abstract.Scene):
         super().__init__(game, name)
         self.audio = audio.SoundManager()
  
-        # El menú trabaja en coordenadas de pantalla (no de mundo),
-        # así que las posiciones ya son píxeles finales — no necesitan escala.
-        # El texto sí se escala dentro de TextButton igual que hace Atlas.
-        font = ResourceManager.getFont("Arial", 32)
+        s    = ResourceManager.getConfig().getint("video", "scale")
+        font = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 18 * s)
  
-        self.playButton     = objects.TextButton(font, "Play",     100, 150)
-        self.settingsButton = objects.TextButton(font, "Settings", 100, 230)
-        self.quitButton     = objects.TextButton(font, "Quit",     100, 310)
+        self.playButton     = objects.TextButton(font, "Play",     20 * s, 40 * s)
+        self.settingsButton = objects.TextButton(font, "Settings", 20 * s, 60* s)
+        self.quitButton     = objects.TextButton(font, "Quit",     20 * s, 80 * s)
  
-        self.sprite_group = pygame.sprite.Group()
-        self.sprite_group.add(self.playButton.graphic)
-        self.sprite_group.add(self.settingsButton.graphic)
-        self.sprite_group.add(self.quitButton.graphic)
- 
-        self._fade_alpha = 255
-        self._fade_speed = 180
+        self.sprite_group = pygame.sprite.Group(
+            self.playButton.graphic,
+            self.settingsButton.graphic,
+            self.quitButton.graphic,
+        )
  
     def update(self, dt):
-        if self._fade_alpha > 0:
-            self._fade_alpha = max(0, self._fade_alpha - self._fade_speed * dt)
- 
-        # sprite_group.update() llama Graphic.update() en cada botón,
-        # lo que coloca rect.topleft en la posición correcta cada frame.
         self.sprite_group.update(dt)
  
         if self.playButton.update(dt):
-            self.game.switchScene(TestScene(self.game, name="test"))
- 
+            self.game.changeScene(TestScene(self.game, name="test"))
         if self.settingsButton.update(dt):
-            print("Se abren ajustes")
- 
+            self.game.switchScene(SettingsScene(self.game,"setings-menu"))
         if self.quitButton.update(dt):
             self.game.quitGame()
  
@@ -168,30 +154,132 @@ class MainMenu(abstract.Scene):
                 self.game.quitGame()
  
     def draw(self):
+        self.game.screen.fill((255, 255, 255))
+        self.sprite_group.draw(self.game.screen)
+
+
+# Categorías de ajustes — cada una es una lista de (etiqueta, valor_mockup)
+SECTIONS = {
+    "Video":      [("Resolucion", "800x800"), ("Escala", "4x"), ("Fullscreen", "Off"), ("FPS max", "1000")],
+    "Audio":      [("Musica", "70%"), ("Efectos", "90%")],
+    "Controles":  [("Arriba", "W"), ("Abajo", "S"), ("Izquierda", "A"), ("Derecha", "D"), ("Interactuar", "E"), ("Guardar", "G")],
+    "Juego":      [("Idioma", "ES")],
+}
+class SettingsScene(abstract.Scene):
+
+    def __init__(self, game, name="settings"):
+        super().__init__(game, name)
+
+        s    = ResourceManager.getConfig().getint("video", "scale")
+        font = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 10 * s)
+
+        # Tabs: un TextButton por sección
+        tab_x_base = 10 * s
+        tab_gap    = 60 * s
+        self._tab_buttons = {
+            section: objects.TextButton(font, section, tab_x_base + i * tab_gap, 10 * s)
+            for i, section in enumerate(SECTIONS)
+        }
+        self._active_section = list(SECTIONS.keys())[0]
+
+        # Botón Back
+        self.backButton = objects.TextButton(font, "Back", 10 * s, 170 * s)
+
+        self.sprite_group = pygame.sprite.Group(
+            *[btn.graphic for btn in self._tab_buttons.values()],
+            self.backButton.graphic,
+        )
+
+    def update(self, dt):
+        self.sprite_group.update(dt)
+
+        for section, btn in self._tab_buttons.items():
+            if btn.update(dt):
+                self._active_section = section
+
+        if self.backButton.update(dt):
+            self.game.quitScene()
+
+    def events(self, events):
+        for event in events:
+            if event.type == pygame.QUIT:
+                self.game.quitGame()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.game.quitScene()
+
+
+    def draw(self):
         screen = self.game.screen
-        sw, sh = screen.get_size()
- 
-        self._draw_gradient(screen, sw, sh, (245, 245, 245), (210, 215, 220))
- 
-        font_title = ResourceManager.getFont("Arial", 48)
-        title_surf = font_title.render("Unlighted", False, (60, 60, 60))
-        screen.blit(title_surf, (100, 60))
-        pygame.draw.line(screen, (180, 180, 180), (100, 122), (340, 122), 1)
- 
+        s = ResourceManager.getConfig().getint("video", "scale")
+        font = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 7 * s)
+
+        screen.fill((255, 255, 255))
+
+        # Línea separadora bajo las tabs
+        tab_line_y = 22 * s
+        pygame.draw.line(screen, (180, 180, 180), (10 * s, tab_line_y), (190 * s, tab_line_y), 1)
+
+        # Filas de la sección activa
+        rows = SECTIONS[self._active_section]
+        row_x     = 15 * s
+        value_x   = 120 * s
+        row_y     = 30 * s
+        row_gap   = 12 * s
+
+        for label, value in rows:
+            label_surf = font.render(label, False, (80, 80, 80))
+            value_surf = font.render(value, False, (120, 120, 120))
+            label_surf.set_colorkey(label_surf.get_at((0, 0)))
+            value_surf.set_colorkey(value_surf.get_at((0, 0)))
+            screen.blit(label_surf, (row_x, row_y))
+            screen.blit(value_surf, (value_x, row_y))
+            row_y += row_gap
+
         self.sprite_group.draw(screen)
+
+class PauseScene(abstract.Scene):
  
-        if self._fade_alpha > 0:
-            fade_surf = pygame.Surface((sw, sh))
-            fade_surf.fill((255, 255, 255))
-            fade_surf.set_alpha(int(self._fade_alpha))
-            screen.blit(fade_surf, (0, 0))
+    def __init__(self, game, name="pause"):
+        super().__init__(game, name)
+        self.parent_scene = game.sceneStack[-1]
  
-    def _draw_gradient(self, surface, w, h, top_color, bottom_color):
-        tr, tg, tb = top_color
-        br, bg, bb = bottom_color
-        for y in range(h):
-            t = y / h
-            r = int(tr + (br - tr) * t)
-            g = int(tg + (bg - tg) * t)
-            b = int(tb + (bb - tb) * t)
-            pygame.draw.line(surface, (r, g, b), (0, y), (w, y))
+        s    = ResourceManager.getConfig().getint("video", "scale")
+        font = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 12 * s)
+ 
+        self.resumeButton   = objects.TextButton(font, "Resume",   20 * s, 50 * s)
+        self.settingsButton = objects.TextButton(font, "Settings", 20 * s, 100 * s)
+        self.quitButton     = objects.TextButton(font, "Quit",     20 * s, 150 * s)
+ 
+        self.sprite_group = pygame.sprite.Group(
+            self.resumeButton.graphic,
+            self.settingsButton.graphic,
+            self.quitButton.graphic,
+        )
+ 
+    def update(self, dt):
+        self.sprite_group.update(dt)
+ 
+        if self.resumeButton.update(dt):
+            self.game.quitScene()
+        if self.settingsButton.update(dt):
+            self.game.switchScene(SettingsScene(self.game, "settings-menu"))
+        if self.quitButton.update(dt):
+            self.game.changeScene(MainMenu(self.game, "main_menu"))
+ 
+    def events(self, events):
+        for event in events:
+            if event.type == pygame.QUIT:
+                self.game.quitGame()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                self.game.quitScene()
+ 
+    def draw(self):
+        # Dibuja la escena de juego detrás para que se vea el estado actual
+        self.parent_scene.draw()
+ 
+        # Overlay semitransparente
+        overlay = pygame.Surface(self.game.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 120))
+        self.game.screen.blit(overlay, (0, 0))
+ 
+        self.sprite_group.draw(self.game.screen)
