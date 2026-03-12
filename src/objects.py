@@ -20,67 +20,51 @@ class Camera(abstract.Object):
     def __init__(self, name="camera", pos=(0,0)):
         super().__init__(name, pos)
         self.spriteGroups = list()
-        size = (ResourceManager.getConfig().getint("video","xres"), ResourceManager.getConfig().getint("video","yres"))
-        self.box = pygame.Rect(self.pos.topleft, size) # AL emplear un rect en la posicion esto es redundandte NEEDFIX
-        print("Camera area:" + str(self.box))
-        self.bounding =  self.box.scale_by(0.2, 0.2)
-        print("Bound area:" + str(self.bounding))
+        self.pos.size = (ResourceManager.getConfig().getint("video","xres"), ResourceManager.getConfig().getint("video","yres"))
+        self.bounding =  self.pos.scale_by(0.2, 0.2)
         self.reference = None
 
     def addGroup(self, group:pygame.sprite.Group):
         self.spriteGroups.append(group)
 
-    def moveCamera(self, target, strength=1):
-        #move the camera    
-        DEFAUTL_STRENGTH = 0.9
+    def moveCamera(self, target):
+        #Calculamos la fueza con la que se tiene que mover la camara teninendo en cuenta la distancia maxima de la pantalla. (Utilizamos la distancia cuadrada pa ir mas rapido)
+        max_distance = (self.pos.size[0] ** 2 +  self.pos.size[1]**2)  / 4 # <- Un objeto se puede alejar como mucho la mitad de la diagonal. Como empleamos el cuadrado pues entre 4
         vector = pygame.math.Vector2(target)
-        vector = vector.smoothstep(self.box.center, pygame.math.clamp(DEFAUTL_STRENGTH*strength, 0, 1))
-        self.box.center = (vector.x, vector.y)
-        self.bounding.center = self.box.center
-        self.pos = self.box.topleft
-
+        strength = vector.distance_squared_to(self.pos.center) / max_distance
+        strength = pygame.math.clamp((1 - strength * 0.2), 0.5, 1) # Hacemos un clamp para que no pete con un minimo para que no se aproxime infinitamente
+        vector = vector.lerp(self.pos.center, strength) # 1 -> Se queda en el centro de la camara, 0 -> se queda en la posicion target
+        self.pos.center = (vector.x, vector.y)
+        self.bounding.center = self.pos.center
         #update listeners
         for group in self.spriteGroups:
             for sprite in group.sprites():
-                sprite.cameraUpdate(self.box.topleft)
+                sprite.cameraUpdate(self.pos.topleft)
                 
-        #print("Camera moved. Target: " + str(target) + "Pos: " + str(self.pos) + " Box:" + str(self.box.topleft) + " bound: " + str(self.bounding.topleft))
-
-
     def setReference(self, ref:abstract.Object):
         self.reference = ref
         #initial center on the reference
-        self.box.center = (ref.pos[0], ref.pos[1])
-        self.bounding.center = self.box.center
-        self.pos = self.box.topleft
-        #print("Camera reference set to: " + str(ref.name) + " at pos: " + str(ref.pos))
-        #print("Camera pos: " + str(self.pos) + " Box:" + str(self.box.topleft) + " bound: " + str(self.bounding.topleft) + "center: " + str(self.box.center))
+        self.pos.center = (ref.pos[0], ref.pos[1])
+        self.bounding.center = self.pos.center
         #update listeners
         for group in self.spriteGroups:
             for sprite in group.sprites():
-                sprite.cameraUpdate(self.box.topleft)
+                sprite.cameraUpdate(self.pos.topleft)
 
     def update(self,dt):
         if self.reference is not None :
             if not self.bounding.collidepoint(self.reference.pos.topleft):
-                #Recalcular la fuerza del movimiento en funcion de la tasa de fotogramas
-                strength = (dt/1000) * ResourceManager.getConfig().getint("video", "maxfps")
-                self.moveCamera(self.reference.pos.topleft, round(strength))
-            
-    def draw(self, screen):
-        for group in self.spriteGroups:
-            group.draw(screen)
+                self.moveCamera(self.reference.pos.topleft)
 
 class tileMap(abstract.Object):
 
-    def __init__(self, tmx, name="tilemap", pos=(0,0)):
+    def __init__(self, tmx, name="tilemap", pos=(0,0), groups = []):
         super().__init__(name, pos)
-        # load and cache the TMX data
         self.tmx = ResourceManager.getTileMap(tmx)
         self.reachable = [[]]
-        layers = self._render_map()
-        self.sprite = components.Tile(self, layers)
-        print(self.reachable)
+        self.sprite = components.Graphic(self,None)
+        self.sprite.image = self._render_map() #Override image
+        self.sprite.rect = self.sprite.image.get_rect()
 
     def update(self, dt):
         # forward to the sprite component so camera offsets are applied
@@ -94,12 +78,10 @@ class tileMap(abstract.Object):
             tile_size = ResourceManager.getConfig().getint("engine", "tile_size")
             width = self.tmx.width * tile_size
             height = self.tmx.height * tile_size
-            layers = []
             self.reachable = [[0 for x in range(self.tmx.width)] for y in range(self.tmx.height)]
-
+            temp_surf = pygame.Surface((width, height), pygame.SRCALPHA)
             for layer in self.tmx.layers:
                 if (isinstance(layer, pytmx.TiledTileLayer) and layer.visible):
-                    temp_surf = pygame.Surface((width, height), pygame.SRCALPHA)
                     for x, y, gid in layer:
                         props = self.tmx.get_tile_properties_by_gid(gid)
                         if props and props.get("reachable"):
@@ -108,17 +90,13 @@ class tileMap(abstract.Object):
                         if tile:
                             temp_surf.blit(tile, (x * self.tmx.tilewidth,
                                                    y * self.tmx.tileheight))
-                    layers.append(temp_surf)
 
             # ahora aplicamos la escala global a cada capa de una sola vez
             scale = ResourceManager.getConfig().getint("video", "scale")
             if scale != 1:
-                scaled = []
-                for layer in layers:
-                    new_size = (layer.get_width() * scale,
-                                layer.get_height() * scale)
-                    scaled.append(pygame.transform.scale(layer, new_size))
-                return scaled
+                new_size = (temp_surf.get_width() * scale,
+                                temp_surf.get_height() * scale)
+                temp_surf = pygame.transform.scale(temp_surf, new_size)
 
-            return layers
+            return temp_surf
 

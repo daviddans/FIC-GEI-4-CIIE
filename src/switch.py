@@ -4,20 +4,28 @@ import components
 import pygame
 
 class Switch(abstract.Object, abstract.Observable):
-    def __init__(self, pos, target_object=None):
+    def __init__(self, pos, is_pressed=False, interact_range=50, target_object=None,  graphic_group=[], light_group=[], **kwargs):
         abstract.Object.__init__(self, "switch", pos)
         abstract.Observable.__init__(self)
-        self.is_pressed = False 
+        self.is_pressed = is_pressed
+        self.interact_range = interact_range
         self.target = target_object
         self.atlas = ResourceManager.getAtlas("interruptor")
-        self.graphic = components.Graphic(self, self.atlas,)
+        self.graphic = components.Graphic(self, self.atlas)
+        if graphic_group:
+            self.graphic.add(graphic_group)
         
         self.graphic.addState("switch-off", [0]) 
         self.graphic.addState("switch-on", [1])
         self.graphic.setState("switch-off") 
         self.interact_range = 50
         
-        self.already_pressed = False 
+        if self.is_pressed:
+            self.graphic.setState("switch-on")
+        else:
+            self.graphic.setState("switch-off")
+            
+     
 
     def update(self, dt, player_pos):
         self.graphic.update(dt)
@@ -37,15 +45,21 @@ class Switch(abstract.Object, abstract.Observable):
             self.already_pressed = False
 
     def toggle(self):
-        # Cambiar al estado contrario si ya está encendido
         self.is_pressed = not self.is_pressed
         
         if self.is_pressed:
             self.graphic.setState("switch-on")
             print("Interruptor encendido")
-            self.notify(self, 'SWITCH_ON')
+            self.notify(self, 'SWITCH_ON') 
         else:
             self.graphic.setState("switch-off")
             print("Interruptor apagado")
-            if self.target: self.target.lock()
             self.notify(self, 'SWITCH_OFF')
+
+    def serialize(self):
+        return {"is_pressed": self.is_pressed}
+
+    def unserialize(self, data):
+        self.is_pressed = data["is_pressed"]
+        if self.is_pressed: self.graphic.setState("switch-on")
+        else: self.graphic.setState("switch-off")

@@ -48,7 +48,15 @@ class ResourceManager:
             return tmx
         else:
             return cls._resources[name]
-
+    
+    @classmethod
+    def getJSON(cls, name):
+        if name not in cls._resources:
+            json_data = cls._read_JSON(name)
+            cls._resources[name] = json_data
+            return json_data
+        else:
+            return cls._resources[name]
 
     #Cargar un archivo tmx
     def _read_TileMap(name):
@@ -79,7 +87,7 @@ class ResourceManager:
                     print(f"Error loading image '{full_path + ext}' : {e}")
                     raise e
         if image is None:
-            raise FileNotFoundError(f"No se encontró el archivo de imagen para el atlas '{name}'")
+            raise FileNotFoundError(f"No se encontró el archivo de imagen para el atlas {name}")
         try:
             cood = json.load(open(full_path + ".json", "r"))
         except Exception as e:
@@ -112,6 +120,25 @@ class ResourceManager:
         except:
             raise FileNotFoundError("No se encuentra config.ini")
         return conf
+    
+    @staticmethod
+    def _read_JSON(name):
+        # Usamos el config para saber dónde están los assets
+        base_path = ResourceManager.getConfig().get("engine", "assets_path")
+        
+        # Si el nombre ya trae extensión (como .tmj), lo usamos; si no, ponemos .json
+        filename = name if "." in name else name + ".json"
+        full_path = os.path.join(base_path, filename)
+        
+        if os.path.exists(full_path):
+            try:
+                with open(full_path, 'r', encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Error fatal leyendo JSON en '{full_path}': {e}")
+                raise e
+        else:
+            raise FileNotFoundError(f"No se encontró el archivo JSON en: {full_path}")
     
 
 """"
