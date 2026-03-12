@@ -14,9 +14,8 @@ import door
 class TestScene(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
-        self.player = player.Player((400,200))
+        self.player = player.Player((200,200))
         config = ResourceManager.getConfig()
-        self.bg = pygame.image.load(config.get("engine","assets_path") + "background.png")
         self.switch1 = switch.Switch(pos=(400, 300))
         self.switch2 = switch.Switch(pos=(800, 300))
         self.door1 = door.Door(pos=(600, 200), is_locked=True)
@@ -29,7 +28,7 @@ class TestScene(abstract.Scene):
 
         self.camera = objects.Camera()
         self.testGroup = pygame.sprite.Group()
-        self.map = objects.tileMap("testMap")
+        self.map = objects.tileMap("TestMap")
         self.map.sprite.add(self.testGroup)
         for i in range(0,10):
             tree = objects.testTree()
@@ -74,9 +73,6 @@ class MainMenu(abstract.Scene):
     def __init__(self, game, name="unamed"):
         super().__init__(game, name)
         self.audio = audio.SoundManager()
-        self.audio.load_music("musiquita.mp3")
-        self.audio.load_sound("pum", "choque.mp3")    
-        self.audio.play_music()
         text = pygame.font.SysFont("Arial",32).render("Play",False,(100,100,100))
         self.playButton = components.Button(text, 100, 100, 3)
         text = pygame.font.SysFont("Arial",32).render("Settings",False,(100,100,100))
@@ -87,7 +83,6 @@ class MainMenu(abstract.Scene):
     def update(self, dt):
         if self.playButton.update() == True :
             print("COMIENZA EL JUEGO")
-            self.audio.play_sound("pum")
             self.game.switchScene(TestScene(self.game, name="test"))
         if self.settingsButton.update() == True :
             print("Se abren ajustes")
