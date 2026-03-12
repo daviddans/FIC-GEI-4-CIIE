@@ -36,14 +36,11 @@ class Camera(abstract.Object):
         vector = vector.lerp(self.pos.center, strength) # 1 -> Se queda en el centro de la camara, 0 -> se queda en la posicion target
         self.pos.center = (vector.x, vector.y)
         self.bounding.center = self.pos.center
-        print(f"Actuall: {self.pos.center} GOAL: {vector} TARGET: {target}")
         #update listeners
         for group in self.spriteGroups:
             for sprite in group.sprites():
                 sprite.cameraUpdate(self.pos.topleft)
                 
-
-
     def setReference(self, ref:abstract.Object):
         self.reference = ref
         #initial center on the reference
@@ -61,13 +58,13 @@ class Camera(abstract.Object):
 
 class tileMap(abstract.Object):
 
-    def __init__(self, tmx, name="tilemap", pos=(0,0)):
+    def __init__(self, tmx, name="tilemap", pos=(0,0), groups = []):
         super().__init__(name, pos)
-        # load and cache the TMX data
         self.tmx = ResourceManager.getTileMap(tmx)
         self.reachable = [[]]
-        layers = self._render_map()
-        self.sprite = components.Tile(self, layers)
+        self.sprite = components.Graphic(self,None)
+        self.sprite.image = self._render_map() #Override image
+        self.sprite.rect = self.sprite.image.get_rect()
 
     def update(self, dt):
         # forward to the sprite component so camera offsets are applied
@@ -81,12 +78,10 @@ class tileMap(abstract.Object):
             tile_size = ResourceManager.getConfig().getint("engine", "tile_size")
             width = self.tmx.width * tile_size
             height = self.tmx.height * tile_size
-            layers = []
             self.reachable = [[0 for x in range(self.tmx.width)] for y in range(self.tmx.height)]
-
+            temp_surf = pygame.Surface((width, height), pygame.SRCALPHA)
             for layer in self.tmx.layers:
                 if (isinstance(layer, pytmx.TiledTileLayer) and layer.visible):
-                    temp_surf = pygame.Surface((width, height), pygame.SRCALPHA)
                     for x, y, gid in layer:
                         props = self.tmx.get_tile_properties_by_gid(gid)
                         if props and props.get("reachable"):
@@ -95,17 +90,13 @@ class tileMap(abstract.Object):
                         if tile:
                             temp_surf.blit(tile, (x * self.tmx.tilewidth,
                                                    y * self.tmx.tileheight))
-                    layers.append(temp_surf)
 
             # ahora aplicamos la escala global a cada capa de una sola vez
             scale = ResourceManager.getConfig().getint("video", "scale")
             if scale != 1:
-                scaled = []
-                for layer in layers:
-                    new_size = (layer.get_width() * scale,
-                                layer.get_height() * scale)
-                    scaled.append(pygame.transform.scale(layer, new_size))
-                return scaled
+                new_size = (temp_surf.get_width() * scale,
+                                temp_surf.get_height() * scale)
+                temp_surf = pygame.transform.scale(temp_surf, new_size)
 
-            return layers
+            return temp_surf
 
