@@ -100,35 +100,6 @@ class Graphic(pygame.sprite.Sprite):
         #Actualizar posicion
         self.rect.topleft = pos
 
-
-    def cameraUpdate(self, pos):
-        self._camera_pos = pos
-
-#Wrapper to make the surface in the tilemap behave like a sprite, so we can use the same camera logic for the map and the objects
-class Tile(pygame.sprite.Sprite):
-    def __init__(self, parent:abstract.Object, layers: list):
-        super().__init__()
-        self.parent = parent
-        self.layers = layers
-        # build a single surface containing every layer in order so that the map
-        # can be treated as a single sprite.  keep the original list around in
-        # case other systems need access to individual layers later.
-        if layers:
-            width = max(layer.get_width() for layer in layers)
-            height = max(layer.get_height() for layer in layers)
-            self.image = pygame.Surface((width, height), pygame.SRCALPHA)
-            for layer in layers:
-                self.image.blit(layer, (0, 0))
-        else:
-            self.image = pygame.Surface((0, 0), pygame.SRCALPHA)
-        self.rect = self.image.get_rect(topleft=parent.pos.topleft)
-        self.camera_pos = (0, 0)
-
-    def update(self, dt):
-        pos = (self.parent.pos[0] - self._camera_pos[0],
-               self.parent.pos[1] - self._camera_pos[1])
-        self.rect.topleft = pos
-
     def cameraUpdate(self, pos):
         self._camera_pos = pos
 
