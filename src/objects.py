@@ -36,7 +36,6 @@ class Camera(abstract.Object):
         vector = vector.lerp(self.pos.center, strength) # 1 -> Se queda en el centro de la camara, 0 -> se queda en la posicion target
         self.pos.center = (vector.x, vector.y)
         self.bounding.center = self.pos.center
-        print(f"Actuall: {self.pos.center} GOAL: {vector} TARGET: {target}")
         #update listeners
         for group in self.spriteGroups:
             for sprite in group.sprites():
@@ -109,3 +108,62 @@ class tileMap(abstract.Object):
 
             return layers
 
+class TextButton(abstract.Object):
+    """
+    Botón reutilizable basado en texto. Implementa abstract.Object completo.
+    Expone self.graphic para que la escena lo añada a su sprite group.
+ 
+    El texto se escala con el parámetro scale del config, igual que Atlas.
+ 
+    Uso futuro con sprites:
+        btn.graphic.addState("idle", [0, 1, 2])
+        btn.graphic.setState("idle")
+    """
+ 
+    def __init__(self, font: pygame.font.Font, label: str, x: int, y: int):
+        super().__init__("text_button", (x, y))
+ 
+        scale = ResourceManager.getConfig().getint("video", "scale")
+ 
+        # Renderizar y escalar igual que hace Atlas con los sprites
+        raw_surf = font.render(label, False, (80, 80, 80))
+        w, h = raw_surf.get_size()
+        text_surf = pygame.transform.scale(raw_surf, (w * scale, h * scale))
+ 
+        # Graphic sin atlas: sobreescribimos image y rect directamente
+        self.graphic = components.Graphic(self, None)
+        self.graphic.image = text_surf
+        self.graphic.rect  = text_surf.get_rect(topleft=(x, y))
+ 
+        # Estado de clic (misma lógica que Button original)
+        self._clicked = False
+ 
+    def update(self, dt: float) -> bool:
+        """Devuelve True el frame en que se hace clic."""
+        # Graphic.update() sobreescribiría rect con parent.pos + camera,
+        # pero en el menú no hay cámara así que pos == topleft correcto.
+        self.graphic.update(dt)
+ 
+        action = False
+        pos = pygame.mouse.get_pos()
+        if self.graphic.rect.collidepoint(pos):
+            if pygame.mouse.get_pressed()[0] == 1 and not self._clicked:
+                self._clicked = True
+                action = True
+        if pygame.mouse.get_pressed()[0] == 0:
+            self._clicked = False
+        return action
+ 
+    def events(self, events: list) -> None:
+        pass
+ 
+    def draw(self) -> None:
+        pass  # Delegado al Graphic via sprite group de la escena
+ 
+    def serialize(self) -> dict:
+        return {"name": self.name, "x": self.pos.x, "y": self.pos.y}
+ 
+    def unserialize(self, data: dict) -> None:
+        self.pos.x = data["x"]
+        self.pos.y = data["y"]
+        self.graphic.rect.topleft = (data["x"], data["y"])
