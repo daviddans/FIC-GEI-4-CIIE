@@ -137,34 +137,45 @@ class Movement():
         self._scale     = scale
         self._tile_size = cfg.getint("engine", "tile_size")
         self.correction = 3 * scale
+        self._x = float(parent.pos.left)
+        self._y = float(parent.pos.top)
 
     def update(self, vector, dt, map):
-        #Calcular movimiento
-        move = (vector.x * self.speed * dt, vector.y *self.speed * dt)
-        #Calcular posicion resultante
-        target = (self.parent.pos.left + move[0], self.parent.pos.top + move[1])
+        # Sync externo: si el rect fue movido externamente (ej. unserialize)
+        if abs(self._x - self.parent.pos.left) > 1:
+            self._x = float(self.parent.pos.left)
+        if abs(self._y - self.parent.pos.top) > 1:
+            self._y = float(self.parent.pos.top)
+
+        new_x = self._x + vector.x * self.speed * dt
+        new_y = self._y + vector.y * self.speed * dt
+
+        w = self.parent.pos.width
+        h = self.parent.pos.height
+
         #Comprobar que todas las esquinas vayan a una casilla accesible
         if vector.x > 0 : #Derecha
-            if ( not self.reachable(self.parent.pos.right + move[0], self.parent.pos.top + self.correction, map) 
-                or not self.reachable(self.parent.pos.right + move[0], self.parent.pos.bottom - self.correction, map) ):
-                target = (self.parent.pos.left, target[1])
+            if ( not self.reachable(new_x + w, self._y + self.correction, map)
+                or not self.reachable(new_x + w, self._y + h - self.correction, map) ):
+                new_x = self._x
         elif vector.x < 0: #Izquierda
-            if ( not self.reachable(self.parent.pos.left + move[0], self.parent.pos.top + self.correction, map) 
-                or not self.reachable(self.parent.pos.left + move[0], self.parent.pos.bottom - self.correction, map) ):
-                target = (self.parent.pos.left, target[1])
+            if ( not self.reachable(new_x, self._y + self.correction, map)
+                or not self.reachable(new_x, self._y + h - self.correction, map) ):
+                new_x = self._x
 
         if vector.y > 0 : #Abajo
-            if ( not self.reachable(self.parent.pos.left + self.correction, self.parent.pos.bottom + move[1], map) 
-                or not self.reachable(self.parent.pos.right - self.correction, self.parent.pos.bottom + move[1], map) ):
-                target = (target[0], self.parent.pos.top)
+            if ( not self.reachable(new_x + self.correction, new_y + h, map)
+                or not self.reachable(new_x + w - self.correction, new_y + h, map) ):
+                new_y = self._y
         elif vector.y < 0 : #Arriba
-            if ( not self.reachable(self.parent.pos.left + self.correction, self.parent.pos.top + move[1], map) 
-                or not self.reachable(self.parent.pos.right - self.correction, self.parent.pos.top + move[1], map) ):
-                 target = (target[0], self.parent.pos.top)
+            if ( not self.reachable(new_x + self.correction, new_y, map)
+                or not self.reachable(new_x + w - self.correction, new_y, map) ):
+                new_y = self._y
 
-        #actualizar posicion
-        self.parent.pos.topleft = target
-        #print(f"move target to: {target}")
+        self._x = new_x
+        self._y = new_y
+        self.parent.pos.topleft = (int(self._x), int(self._y))
+        #print(f"move target to: {self.parent.pos.topleft}")
 
     #Comprobar si es una posicion alcanzable en una matriz de mapa
     def reachable(self, x_pixel, y_pixel, matrix):
