@@ -4,6 +4,7 @@ from resourceManager import ResourceManager
 from saveManager import SaveManager
 from switch import Switch
 from door import Door
+from objects import LightObject
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -13,19 +14,22 @@ class TestScene(abstract.Scene):
     def __init__(self, game, name=None):
         super().__init__(game, name)
         self.groups = {
-            "static":  pygame.sprite.Group(),
-            "dynamic": pygame.sprite.Group(),
-            "lights":  pygame.sprite.Group(),
+            "map_back":  pygame.sprite.Group(),  # capas Z <= 0 (suelo, paredes)
+            "static":    pygame.sprite.Group(),  # entidades sin movimiento (llaves, puertas)
+            "dynamic":   pygame.sprite.Group(),  # entidades con movimiento (jugador, enemigos)
+            "map_front": pygame.sprite.Group(),  # capas Z > 0  (techos, cubiertas)
+            "lights":    pygame.sprite.Group(),  # todas las luces
+            "hud": pygame.sprite.Group(),        # Head' ups display y efectos de pantalla
         }
         self.rooms = []
         self.player = None
-        self.light_screen  = self.game.screen.copy()
-        self.map    = objects.tileMap("TestGigante")
+        self.light_screen = self.game.screen.copy()
+        self.map    = objects.tileMap("TestGigante",
+                                      back_group=self.groups["map_back"],
+                                      front_group=self.groups["map_front"])
         self.camera = objects.Camera()
-        self.map.sprite.add(self.groups["static"])
-        self.camera.addGroup(self.groups["static"])
-        self.camera.addGroup(self.groups["dynamic"])
-        self.camera.addGroup(self.groups["lights"])
+        for g in self.groups.values():
+            self.camera.addGroup(g)
         self._load_from_tiled()
         if self.player:
             self.camera.setReference(self.player)
@@ -44,36 +48,43 @@ class TestScene(abstract.Scene):
             return
         self.player.update(dt, map=self.map.reachable)
         updated = {self.player}
-        for sprite in self.groups["dynamic"].sprites():
-            ent = sprite.parent
-            if ent not in updated:
-                updated.add(ent)
-                ent.update(dt, self.player.pos.topleft)
-        self.groups["static"].update(dt)
-        self.groups["dynamic"].update(dt)
-        self.groups["lights"].update(dt)
+        for group_name in ("static", "dynamic"):
+            for sprite in self.groups[group_name].sprites():
+                ent = sprite.parent
+                if ent not in updated:
+                    updated.add(ent)
+                    ent.update(dt, self.player.pos.topleft)
+        for g in self.groups.values():
+            g.update(dt)
         self.camera.update(dt)
 
     def draw(self):
         screen_rect = self.game.screen.get_rect()
         self.game.screen.fill("black")
 
-        # Estáticos: solo los visibles en el viewport
-        for sprite in self.groups["static"].sprites():
+        # 1. Mapa background (Z <= 0): viewport culling por chunk
+        for sprite in self.groups["map_back"].sprites():
             if screen_rect.colliderect(sprite.rect):
                 self.game.screen.blit(sprite.image, sprite.rect)
 
-        # Dinámicos: Y-sort por borde inferior
-        for sprite in sorted(self.groups["dynamic"].sprites(), key=lambda s: s.rect.bottom):
+        # 2. Entidades: static + dynamic Y-sorted juntas
+        all_ents = (self.groups["static"].sprites() +
+                    self.groups["dynamic"].sprites())
+        for sprite in sorted(all_ents, key=lambda s: s.rect.bottom):
             self.game.screen.blit(sprite.image, sprite.rect)
 
-        # Luces: clipeadas al rect de su habitación
+        # 3. Mapa foreground (Z > 0): sobre las entidades
+        for sprite in self.groups["map_front"].sprites():
+            if screen_rect.colliderect(sprite.rect):
+                self.game.screen.blit(sprite.image, sprite.rect)
+
+        # 4. Luces: clipeadas al rect de su habitación + BLEND_MULT
         self.light_screen.fill("grey10")
         for sprite in self.groups["lights"].sprites():
             clip = self._room_clip_for(sprite.parent.pos)
             if clip:
                 self.light_screen.set_clip(clip)
-            self.light_screen.blit(sprite.image, sprite.rect)
+            self.light_screen.blit(sprite.image, sprite.rect, special_flags=pygame.BLEND_RGBA_ADD)
             self.light_screen.set_clip(None)
         self.game.screen.blit(self.light_screen, (0, 0), special_flags=pygame.BLEND_MULT)
 
@@ -87,8 +98,9 @@ class TestScene(abstract.Scene):
 
     def _load_from_tiled(self):
         scale = ResourceManager.getConfig().getint("video", "scale")
-        classes = {"Player": player.Player, "Switch": Switch, "Door": Door}
-        temp = {}  
+        static_classes  = {"Switch": Switch, "Door": Door}
+        dynamic_classes = {"Player": player.Player}
+        temp = {}
         for obj in self.map.tmx.objects:
             obj_type = obj.type.strip()
             if obj_type == "Room":
@@ -97,10 +109,20 @@ class TestScene(abstract.Scene):
                     obj.width * scale, obj.height * scale
                 ))
                 continue
-            cls = classes.get(obj_type)
-            if not cls:
+            if obj_type == "Light":
+                LightObject(pos=(obj.x, obj.y),
+                            light_group=self.groups["lights"],
+                            **obj.properties)
                 continue
-            ent = cls(pos=(obj.x, obj.y), graphic_group=self.groups["dynamic"],
+            if obj_type in static_classes:
+                graphic_group = self.groups["static"]
+                cls = static_classes[obj_type]
+            elif obj_type in dynamic_classes:
+                graphic_group = self.groups["dynamic"]
+                cls = dynamic_classes[obj_type]
+            else:
+                continue
+            ent = cls(pos=(obj.x, obj.y), graphic_group=graphic_group,
                       light_group=self.groups["lights"], **obj.properties)
             temp[obj.name or str(obj.id)] = ent
             if obj_type == "Player":

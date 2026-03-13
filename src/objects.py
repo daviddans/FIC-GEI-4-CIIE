@@ -2,18 +2,7 @@ import pygame
 from pytmx import pytmx
 import abstract
 import components
-from random import randint
 from resourceManager import ResourceManager
-
-
-class testTree(abstract.Object):
-    def __init__(self):
-        super().__init__()
-        self.pos.topleft = (randint(-100, 1000), randint(-100, 1000))
-        self.atlas = ResourceManager.getAtlas("arbol")
-        self.sprite = components.Graphic(self, self.atlas)
-        self.sprite.addState("tree", [0])
-        self.sprite.setState("tree")
 
 
 class Camera(abstract.Object):
@@ -54,37 +43,105 @@ class Camera(abstract.Object):
 
 
 class tileMap(abstract.Object):
-    def __init__(self, tmx, name="tilemap", pos=(0, 0), groups=[]):
+    def __init__(self, tmx, name="tilemap", pos=(0, 0),
+                 back_group=None, front_group=None):
         super().__init__(name, pos)
         self.tmx       = ResourceManager.getTileMap(tmx)
         self.reachable = [[]]
-        self.sprite    = components.Graphic(self, None)
-        self.sprite.image = self._render_map()
-        self.sprite.rect  = self.sprite.image.get_rect()
+        self._render_map(back_group, front_group)
 
     def update(self, dt):
-        self.sprite.update(dt)
+        pass  # chunk sprites are updated via their sprite groups in the scene
 
-    def _render_map(self):
-        cfg       = ResourceManager.getConfig()
-        tile_size = cfg.getint("engine", "tile_size")
-        scale     = cfg.getint("video", "scale")
-        w = self.tmx.width  * tile_size
-        h = self.tmx.height * tile_size
-        self.reachable = [[0] * self.tmx.width for _ in range(self.tmx.height)]
-        surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    def _render_map(self, back_group, front_group):
+        cfg        = ResourceManager.getConfig()
+        scale      = cfg.getint("video", "scale")
+        chunk_size = cfg.getint("engine", "chunk_size", fallback=32)
+        map_w      = self.tmx.width
+        map_h      = self.tmx.height
+        tw         = self.tmx.tilewidth
+        th         = self.tmx.tileheight
+        self.reachable = [[0] * map_w for _ in range(map_h)]
+
+        # Classify layers: "reachable" mask only; Z>0 → foreground; rest → background
+        bg_layers = []
+        fg_layers = []
         for layer in self.tmx.layers:
-            if isinstance(layer, pytmx.TiledTileLayer) and layer.visible:
+            if not isinstance(layer, pytmx.TiledTileLayer) or not layer.visible:
+                continue
+            if layer.name and layer.name.lower() == "reachable":
+                for x, y, gid in layer:
+                    props = self.tmx.get_tile_properties_by_gid(gid)
+                    if props and props.get("reachable"):
+                        self.reachable[y][x] = 1
+                continue
+            props_lower = {k.lower(): v for k, v in (layer.properties or {}).items()}
+            z = int(props_lower.get("z", 0))
+            if z > 0:
+                fg_layers.append(layer)
+            else:
+                bg_layers.append(layer)
+
+        def _build_chunks(layer_list, group):
+            if not layer_list or group is None:
+                return
+            chunk_surfs = {}  # (cx, cy) -> Surface
+            for layer in layer_list:
                 for x, y, gid in layer:
                     props = self.tmx.get_tile_properties_by_gid(gid)
                     if props and props.get("reachable"):
                         self.reachable[y][x] = 1
                     tile = self.tmx.get_tile_image_by_gid(gid)
-                    if tile:
-                        surf.blit(tile, (x * self.tmx.tilewidth, y * self.tmx.tileheight))
-        if scale != 1:
-            surf = pygame.transform.scale(surf, (w * scale, h * scale))
-        return surf
+                    if not tile:
+                        continue
+                    cx, cy = x // chunk_size, y // chunk_size
+                    lx, ly = x % chunk_size, y % chunk_size
+                    key = (cx, cy)
+                    if key not in chunk_surfs:
+                        tx0 = cx * chunk_size
+                        ty0 = cy * chunk_size
+                        w_px = (min(tx0 + chunk_size, map_w) - tx0) * tw
+                        h_px = (min(ty0 + chunk_size, map_h) - ty0) * th
+                        chunk_surfs[key] = pygame.Surface((w_px, h_px), pygame.SRCALPHA)
+                    chunk_surfs[key].blit(tile, (lx * tw, ly * th))
+
+            for (cx, cy), surf in chunk_surfs.items():
+                tx0 = cx * chunk_size
+                ty0 = cy * chunk_size
+                if scale != 1:
+                    w_px, h_px = surf.get_size()
+                    surf = pygame.transform.scale(surf, (w_px * scale, h_px * scale))
+                # offset in unscaled pixels; Graphic.__init__ applies scale
+                g = components.Graphic(self, None, offset=(tx0 * tw, ty0 * th))
+                g.image = surf
+                g.rect  = surf.get_rect()
+                g.add(group)
+
+        _build_chunks(bg_layers, back_group)
+        _build_chunks(fg_layers, front_group)
+
+
+class LightObject(abstract.Object):
+    """Fuente de luz estática colocada desde Tiled (type='Light').
+    Propiedades Tiled: atlas (str), offset_x (int), offset_y (int).
+    """
+    def __init__(self, pos=(0, 0), light_group=None,
+                 atlas="light1", **kwargs):
+        super().__init__("light_object", pos)
+        self.light = components.Graphic(
+            self, ResourceManager.getAtlas(atlas),
+            offset=(-128, -128), primary=False
+        )
+        if light_group:
+            self.light.add(light_group)
+        self.light.addState("on", [0])
+        self.light.setState("on")
+
+    def update(self, dt):
+        self.light.update(dt)
+
+    def serialize(self):
+        return {}
 
 
 class TextButton(abstract.Object):
