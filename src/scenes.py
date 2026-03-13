@@ -12,13 +12,20 @@ from door import Door
 class TestScene(abstract.Scene):
     def __init__(self, game, name=None):
         super().__init__(game, name)
-        self.groups = {"game": pygame.sprite.Group(), "lights": pygame.sprite.Group()}
+        self.groups = {
+            "static":  pygame.sprite.Group(),
+            "dynamic": pygame.sprite.Group(),
+            "lights":  pygame.sprite.Group(),
+        }
         self.entities_dict = {}
+        self.rooms = []
+        self.player = None
         self.light_screen  = self.game.screen.copy()
         self.map    = objects.tileMap("TestMap")
         self.camera = objects.Camera()
-        self.map.sprite.add(self.groups["game"])
-        self.camera.addGroup(self.groups["game"])
+        self.map.sprite.add(self.groups["static"])
+        self.camera.addGroup(self.groups["static"])
+        self.camera.addGroup(self.groups["dynamic"])
         self.camera.addGroup(self.groups["lights"])
         self._load_from_tiled()
         if self.player:
@@ -38,28 +45,59 @@ class TestScene(abstract.Scene):
         for eid, ent in self.entities_dict.items():
             if eid != "player":
                 ent.update(dt, self.player.pos.topleft)
-        self.groups["game"].update(dt)
+        self.groups["static"].update(dt)
+        self.groups["dynamic"].update(dt)
         self.groups["lights"].update(dt)
         self.camera.update(dt)
 
     def draw(self):
-        self.light_screen.fill("grey10")
+        screen_rect = self.game.screen.get_rect()
         self.game.screen.fill("black")
-        self.groups["game"].draw(self.game.screen)
-        self.groups["lights"].draw(self.light_screen)
+
+        # Estáticos: solo los visibles en el viewport
+        for sprite in self.groups["static"].sprites():
+            if screen_rect.colliderect(sprite.rect):
+                self.game.screen.blit(sprite.image, sprite.rect)
+
+        # Dinámicos: Y-sort por borde inferior
+        for sprite in sorted(self.groups["dynamic"].sprites(), key=lambda s: s.rect.bottom):
+            self.game.screen.blit(sprite.image, sprite.rect)
+
+        # Luces: clipeadas al rect de su habitación
+        self.light_screen.fill("grey10")
+        for sprite in self.groups["lights"].sprites():
+            clip = self._room_clip_for(sprite.parent.pos)
+            if clip:
+                self.light_screen.set_clip(clip)
+            self.light_screen.blit(sprite.image, sprite.rect)
+            self.light_screen.set_clip(None)
         self.game.screen.blit(self.light_screen, (0, 0), special_flags=pygame.BLEND_MULT)
 
+    def _room_clip_for(self, world_pos):
+        """Rect de la habitación que contiene world_pos, en coordenadas de pantalla."""
+        cam = self.camera.pos
+        for room in self.rooms:
+            if room.colliderect(world_pos):
+                return room.move(-cam.x, -cam.y)
+        return None
+
     def _load_from_tiled(self):
+        scale = ResourceManager.getConfig().getint("video", "scale")
         classes = {"Player": player.Player, "Switch": Switch, "Door": Door}
         for obj in self.map.tmx.objects:
+            if obj.type == "Room":
+                self.rooms.append(pygame.Rect(
+                    obj.x * scale, obj.y * scale,
+                    obj.width * scale, obj.height * scale
+                ))
+                continue
             cls = classes.get(obj.type)
             if not cls:
                 continue
-            ent = cls(pos=(obj.x, obj.y), graphic_group=self.groups["game"],
+            ent = cls(pos=(obj.x, obj.y), graphic_group=self.groups["dynamic"],
                       light_group=self.groups["lights"], **obj.properties)
             eid = obj.name or str(obj.id)
             self.entities_dict[eid] = ent
-            ent.graphic.add(self.groups["game"])
             if obj.type == "Player":
                 self.player = ent
         for eid, ent in self.entities_dict.items():

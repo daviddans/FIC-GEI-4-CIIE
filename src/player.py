@@ -7,7 +7,7 @@ import objects
 from resourceManager import ResourceManager
 
 class Player(abstract.Object):
-    def __init__(self, pos=(0,0), speed=0.5, graphic_group=None, light_group=None):
+    def __init__(self, pos=(0,0), speed=0.1, graphic_group=None, light_group=None):
         super().__init__("player", pos) 
         self.atlas = ResourceManager.getAtlas("player-base")
         self.graphic_group = graphic_group
@@ -24,7 +24,7 @@ class Player(abstract.Object):
         self.graphic.setState("idle")
 
         self.input = components.Input(self)
-        self.move = components.Movement(self, speed=0.5)
+        self.move = components.Movement(self, speed=speed)
         self.animation_end = False
         self.animation_time_elapsed = 0
         self.move_animation_speed = 400

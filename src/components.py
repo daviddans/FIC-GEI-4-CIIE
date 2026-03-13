@@ -131,12 +131,12 @@ class Input():
 class Movement():
     def __init__(self, parent:abstract.Object, speed):
         self.parent = parent
-        self.speed = speed
         cfg = ResourceManager.getConfig()
         scale = cfg.getint("video", "scale")
         self._scale     = scale
         self._tile_size = cfg.getint("engine", "tile_size")
         self.correction = 3 * scale
+        self.speed = speed * scale
         self._x = float(parent.pos.left)
         self._y = float(parent.pos.top)
 
