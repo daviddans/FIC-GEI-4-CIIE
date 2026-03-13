@@ -1,7 +1,5 @@
 import pygame
 import abstract
-import objects
-import json
 from resourceManager import ResourceManager
 """
 Class to load a full spritesheet ( atlas ) and give subsurface to be used 
@@ -14,6 +12,8 @@ class Atlas():
         size = self.atlas.get_size()
         self.scale = ResourceManager.getConfig().getint("video", "scale")
         self.atlas = pygame.transform.scale(self.atlas,(size[0]*self.scale, size[1]*self.scale))
+        # convert_alpha acelera todos los blits posteriores (una sola vez al cargar)
+        self.atlas = self.atlas.convert_alpha()
         
     def getSprite(self, id):
         info = self.coordinates.get(str(id))
@@ -54,7 +54,8 @@ class Graphic(pygame.sprite.Sprite):
         self.animate= False
         self.parent = parent
         self._atlas = atlas
-        self._offset = offset
+        scale = ResourceManager.getConfig().getint("video", "scale")
+        self._offset = (offset[0] * scale, offset[1] * scale)
         self._camera_pos = (0,0)
         self.primary = primary
         
@@ -131,8 +132,11 @@ class Movement():
     def __init__(self, parent:abstract.Object, speed):
         self.parent = parent
         self.speed = speed
-        scale = ResourceManager.getConfig().getint("video", "scale")
-        self.correction = 3 * scale # Correccion para evitar errores pixel perfect
+        cfg = ResourceManager.getConfig()
+        scale = cfg.getint("video", "scale")
+        self._scale     = scale
+        self._tile_size = cfg.getint("engine", "tile_size")
+        self.correction = 3 * scale
 
     def update(self, vector, dt, map):
         #Calcular movimiento
@@ -166,10 +170,8 @@ class Movement():
     def reachable(self, x_pixel, y_pixel, matrix):
         if matrix is None:
             return True
-        tile_size = ResourceManager.getConfig().getint("engine", "tile_size")
-        scale = ResourceManager.getConfig().getint("video", "scale")
-        grid_x = int(x_pixel // (tile_size*scale))
-        grid_y = int(y_pixel // (tile_size*scale))
+        grid_x = int(x_pixel // (self._tile_size * self._scale))
+        grid_y = int(y_pixel // (self._tile_size * self._scale))
         #print(f"Grid reachability tested:({grid_x}, {grid_y})")
         if 0 <= grid_x < len(matrix[0]) and 0 <= grid_y < len(matrix):
             return matrix[grid_y][grid_x]

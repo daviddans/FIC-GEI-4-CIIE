@@ -209,3 +209,6 @@ __marimo__/
 
 #Datos del usuario
 User/
+
+# Claude Code context
+src/CLAUDE.md

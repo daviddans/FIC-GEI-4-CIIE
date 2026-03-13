@@ -1,40 +1,26 @@
-# Script containing the logic for the various scenes composing the game.
-
 import pygame
-import components
-import player
-import objects
-import abstract
-import audio
-import utils
+import player, objects, abstract, audio, switch, door
 from resourceManager import ResourceManager
-import switch
-import door
-from datetime import datetime
 from saveManager import SaveManager
+from switch import Switch
+from door import Door
 
 
-
+# ─────────────────────────────────────────────────────────────────────
+# TestScene
+# ─────────────────────────────────────────────────────────────────────
 class TestScene(abstract.Scene):
     def __init__(self, game, name=None):
         super().__init__(game, name)
-
-        self.groups = {
-            "TestGroup": pygame.sprite.Group(),
-            "lights": pygame.sprite.Group()
-        }
-
-        self.entities_dict = {}  
-        self.light_screen = self.game.screen.copy()
-
-        self.map = objects.tileMap("TestMap")
+        self.groups = {"game": pygame.sprite.Group(), "lights": pygame.sprite.Group()}
+        self.entities_dict = {}
+        self.light_screen  = self.game.screen.copy()
+        self.map    = objects.tileMap("TestMap")
         self.camera = objects.Camera()
-
-        self.map.sprite.add(self.groups["TestGroup"])
-        self.camera.addGroup(self.groups["TestGroup"])
+        self.map.sprite.add(self.groups["game"])
+        self.camera.addGroup(self.groups["game"])
         self.camera.addGroup(self.groups["lights"])
-
-        self.load_from_tiled()
+        self._load_from_tiled()
         if self.player:
             self.camera.setReference(self.player)
         SaveManager.load(self)
@@ -44,241 +30,254 @@ class TestScene(abstract.Scene):
             if event.type == pygame.QUIT:
                 self.game.quitGame()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_g: 
-                    SaveManager.save(self)
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                self.game.switchScene(PauseScene(self.game, "Pause-Scene"))
-        
+                if event.key == pygame.K_g:      SaveManager.save(self)
+                if event.key == pygame.K_ESCAPE: self.game.switchScene(PauseScene(self.game))
+
     def update(self, dt):
         self.player.update(dt, map=self.map.reachable)
-        
-        for ent_id, ent in self.entities_dict.items():
-            if ent_id != "player":
+        for eid, ent in self.entities_dict.items():
+            if eid != "player":
                 ent.update(dt, self.player.pos.topleft)
-
-        self.groups["TestGroup"].update(dt)
+        self.groups["game"].update(dt)
         self.groups["lights"].update(dt)
         self.camera.update(dt)
 
     def draw(self):
         self.light_screen.fill("grey10")
-        screen = self.game.screen
-        screen.fill("black")
-        self.groups["TestGroup"].draw(screen)
+        self.game.screen.fill("black")
+        self.groups["game"].draw(self.game.screen)
         self.groups["lights"].draw(self.light_screen)
-        screen.blit(self.light_screen,(0, 0), special_flags=pygame.BLEND_MULT) #cast pseudo light
+        self.game.screen.blit(self.light_screen, (0, 0), special_flags=pygame.BLEND_MULT)
 
-    
-    def load_from_tiled(self):
-        # Mapeo de clases
-        classes = {
-            "Player": player.Player,
-            "Switch": switch.Switch,
-            "Door": door.Door
-        }
-   
-        tmx_data = self.map.tmx
-
-        for obj in tmx_data.objects:
-          
-            clase_obj = classes.get(obj.type)
-            
-            if clase_obj:
-                props = obj.properties 
-                pos = (obj.x , obj.y)
-                
-                nuevo_obj = clase_obj(pos=pos, graphic_group=self.groups["TestGroup"], light_group=self.groups["lights"],**props)
-            
-                ent_id = obj.name if obj.name else str(obj.id)
-                self.entities_dict[ent_id] = nuevo_obj
-                
-                nuevo_obj.graphic.add(self.groups["TestGroup"])
-                
-                # Referencia para la cámara
-                if obj.type == "Player":
-                    self.player = nuevo_obj
-                 
-
-        for ent_id, ent in self.entities_dict.items():
-            if hasattr(ent, 'target') and ent.target:
-                # ahora mismo se implementa en el tiled como (door1,door2)
-                target_names = str(ent.target).split(",")
-                ent.target_objects = [] 
-
-                for name in target_names:
-                    receptor_name = name.strip()
-                    receptor = self.entities_dict.get(receptor_name)
-                    
-                    if receptor:
-                        ent.add_observer(receptor)
-                        ent.target_objects.append(receptor)
-                        if len(target_names) == 1:
-                            ent.target = receptor
-                            
-                        print(f"Lógica conectada: {ent_id} -> {receptor_name}")
+    def _load_from_tiled(self):
+        classes = {"Player": player.Player, "Switch": Switch, "Door": Door}
+        for obj in self.map.tmx.objects:
+            cls = classes.get(obj.type)
+            if not cls:
+                continue
+            ent = cls(pos=(obj.x, obj.y), graphic_group=self.groups["game"],
+                      light_group=self.groups["lights"], **obj.properties)
+            eid = obj.name or str(obj.id)
+            self.entities_dict[eid] = ent
+            ent.graphic.add(self.groups["game"])
+            if obj.type == "Player":
+                self.player = ent
+        for eid, ent in self.entities_dict.items():
+            if not hasattr(ent, "target") or not ent.target:
+                continue
+            names = str(ent.target).split(",")
+            ent.target_objects = []
+            for name in names:
+                r = self.entities_dict.get(name.strip())
+                if r:
+                    ent.add_observer(r)
+                    ent.target_objects.append(r)
+                    if len(names) == 1:
+                        ent.target = r
 
 
+# ─────────────────────────────────────────────────────────────────────
+# MainMenu
+# ─────────────────────────────────────────────────────────────────────
 class MainMenu(abstract.Scene):
- 
     def __init__(self, game, name="main_menu"):
         super().__init__(game, name)
-        self.audio = audio.SoundManager()
- 
-        s    = ResourceManager.getConfig().getint("video", "scale")
-        font = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 18 * s)
- 
-        self.playButton     = objects.TextButton(font, "Play",     20 * s, 40 * s)
-        self.settingsButton = objects.TextButton(font, "Settings", 20 * s, 60* s)
-        self.quitButton     = objects.TextButton(font, "Quit",     20 * s, 80 * s)
- 
-        self.sprite_group = pygame.sprite.Group(
-            self.playButton.graphic,
-            self.settingsButton.graphic,
-            self.quitButton.graphic,
-        )
- 
+        self.audio    = audio.SoundManager()
+        self.play     = objects.TextButton("Play",     20, 50)
+        self.settings = objects.TextButton("Settings", 20, 70)
+        self.quit     = objects.TextButton("Quit",     20, 90)
+        self.sprites  = pygame.sprite.Group(
+            self.play.graphic, self.settings.graphic, self.quit.graphic)
+
     def update(self, dt):
-        self.sprite_group.update(dt)
- 
-        if self.playButton.update(dt):
-            self.game.changeScene(TestScene(self.game, name="test"))
-        if self.settingsButton.update(dt):
-            self.game.switchScene(SettingsScene(self.game,"setings-menu"))
-        if self.quitButton.update(dt):
-            self.game.quitGame()
- 
+        self.sprites.update(dt)
+        if self.play.update(dt):     self.game.changeScene(TestScene(self.game))
+        if self.settings.update(dt): self.game.switchScene(SettingsScene(self.game))
+        if self.quit.update(dt):     self.game.quitGame()
+
     def events(self, events):
-        for event in events:
-            if event.type == pygame.QUIT:
-                self.game.quitGame()
- 
+        for e in events:
+            if e.type == pygame.QUIT: self.game.quitGame()
+
     def draw(self):
         self.game.screen.fill((255, 255, 255))
-        self.sprite_group.draw(self.game.screen)
+        self.sprites.draw(self.game.screen)
 
 
-# Categorías de ajustes — cada una es una lista de (etiqueta, valor_mockup)
-SECTIONS = {
-    "Video":      [("Resolucion", "800x800"), ("Escala", "4x"), ("Fullscreen", "Off"), ("FPS max", "1000")],
-    "Audio":      [("Musica", "70%"), ("Efectos", "90%")],
-    "Controles":  [("Arriba", "W"), ("Abajo", "S"), ("Izquierda", "A"), ("Derecha", "D"), ("Interactuar", "E"), ("Guardar", "G")],
-    "Juego":      [("Idioma", "ES")],
-}
+# ─────────────────────────────────────────────────────────────────────
+# SettingsScene
+# Para añadir una pestaña:
+#   1. Crear clase que herede _SettingsTab
+#   2. Añadir instancia a self.TABS en SettingsScene.__init__
+# ─────────────────────────────────────────────────────────────────────
+class _SettingsTab:
+    def update(self, dt):          pass
+    def events(self, events):      pass
+    def draw(self, screen, s, font): pass
+
+
+class _VideoTab(_SettingsTab):
+    RESOLUTIONS = [(1920, 1080), (2560, 1440)]  # añade resoluciones aquí
+    FPS_OPTIONS = [30, 60, 120, 144,  240, 360, 500, 1000]
+
+    # Layout base (unidades sin escalar)
+    _LX  = 20   # x etiquetas
+    _VX = 60 # x del valor
+    _BX  = 120   # x botón <
+    _BX2 = 130  # x botón >
+    _Y   = [60, 80, 100]   # y de cada fila: resolución, fullscreen, fps
+
+    def __init__(self):
+        cfg = ResourceManager.getConfig()
+        cur = (cfg.getint("video", "xres"), cfg.getint("video", "yres"))
+        self._res_i = next((i for i, r in enumerate(self.RESOLUTIONS) if r == cur), 0)
+        self._fps_i = next((i for i, v in enumerate(self.FPS_OPTIONS)
+                            if v == cfg.getint("video", "maxfps")), 0)
+        self._fs = cfg.getboolean("video", "fullscreen")
+
+        y = self._Y
+        self.res_prev = objects.TextButton("<",      self._BX,  y[0])
+        self.res_next = objects.TextButton(">",      self._BX2, y[0])
+        self.fs_btn   = objects.TextButton("Toggle", self._BX,  y[1])
+        self.fps_prev = objects.TextButton("<",      self._BX,  y[2])
+        self.fps_next = objects.TextButton(">",      self._BX2, y[2])
+
+        self.sprites = pygame.sprite.Group(
+            self.res_prev.graphic, self.res_next.graphic,
+            self.fs_btn.graphic,
+            self.fps_prev.graphic, self.fps_next.graphic,
+        )
+
+    @property
+    def resolution(self): return self.RESOLUTIONS[self._res_i]
+    @property
+    def fullscreen(self): return self._fs
+    @property
+    def maxfps(self):     return self.FPS_OPTIONS[self._fps_i]
+
+    def update(self, dt):
+        self.sprites.update(dt)
+        if self.res_prev.update(dt): self._res_i = (self._res_i - 1) % len(self.RESOLUTIONS)
+        if self.res_next.update(dt): self._res_i = (self._res_i + 1) % len(self.RESOLUTIONS)
+        if self.fs_btn.update(dt):   self._fs    = not self._fs
+        if self.fps_prev.update(dt): self._fps_i = (self._fps_i - 1) % len(self.FPS_OPTIONS)
+        if self.fps_next.update(dt): self._fps_i = (self._fps_i + 1) % len(self.FPS_OPTIONS)
+
+    def draw(self, screen, s, font):
+        rows = [
+            ("Resolucion", self._Y[0], f"{self.resolution[0]}x{self.resolution[1]}"),
+            ("Fullscreen", self._Y[1], "On" if self._fs else "Off"),
+            ("FPS max",    self._Y[2], str(self.maxfps)),
+        ]
+        for label, y, val in rows:
+            ls = font.render(label, False, (80, 80, 80)); ls.set_colorkey(ls.get_at((0, 0)))
+            vs = font.render(val,   False, (40, 40, 40)); vs.set_colorkey(vs.get_at((0, 0)))
+            screen.blit(ls, (self._LX * s, y * s))
+            screen.blit(vs, (self._VX * s + 12 * s, y * s))
+        self.sprites.draw(screen)
+
+
 class SettingsScene(abstract.Scene):
-
     def __init__(self, game, name="settings"):
         super().__init__(game, name)
+        # scale fijado en construcción — no cambia en caliente
+        self._s = ResourceManager.getConfig().getint("video", "scale")
+        s = self._s
 
-        s    = ResourceManager.getConfig().getint("video", "scale")
-        font = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 10 * s)
+        self._video  = _VideoTab()
+        self.TABS    = {"Video": self._video}
+        self._active = "Video"
+        self._pending = False
 
-        # Tabs: un TextButton por sección
-        tab_x_base = 10 * s
-        tab_gap    = 60 * s
-        self._tab_buttons = {
-            section: objects.TextButton(font, section, tab_x_base + i * tab_gap, 10 * s)
-            for i, section in enumerate(SECTIONS)
+        # Tab buttons — espaciado horizontal de 55 unidades base
+        self._tab_btns = {
+            k: objects.TextButton(k, 10 + i * 60, 12)
+            for i, k in enumerate(self.TABS)
         }
-        self._active_section = list(SECTIONS.keys())[0]
+        self.apply = objects.TextButton("Apply", 15, 200)
+        self.back  = objects.TextButton("Back",  15, 220)
 
-        # Botón Back
-        self.backButton = objects.TextButton(font, "Back", 10 * s, 170 * s)
-
-        self.sprite_group = pygame.sprite.Group(
-            *[btn.graphic for btn in self._tab_buttons.values()],
-            self.backButton.graphic,
+        self._static_sprites = pygame.sprite.Group(
+            *[b.graphic for b in self._tab_btns.values()],
+            self.apply.graphic, self.back.graphic,
         )
+        # Fuente para etiquetas en draw — tamaño base 7, escalado fijo
+        self._font = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 7 * s)
+
+    def _apply(self):
+        cfg = ResourceManager.getConfig()
+        vid = self._video
+        if vid.fullscreen:
+            info = pygame.display.Info()
+            w, h = info.current_w, info.current_h
+        else:
+            w, h = vid.resolution
+        rw = cfg.getint("engine", "width")
+        rh = cfg.getint("engine", "height")
+        # Guardar como pendiente: no se aplica al config live hasta apply_pending() en exit
+        ResourceManager.set_pending("video", "xres",       str(w))
+        ResourceManager.set_pending("video", "yres",       str(h))
+        ResourceManager.set_pending("video", "fullscreen", "1" if vid.fullscreen else "0")
+        ResourceManager.set_pending("video", "maxfps",     str(vid.maxfps))
+        ResourceManager.set_pending("video", "scale",      str(min(w // rw, h // rh)))
+        self._pending = True
 
     def update(self, dt):
-        self.sprite_group.update(dt)
-
-        for section, btn in self._tab_buttons.items():
-            if btn.update(dt):
-                self._active_section = section
-
-        if self.backButton.update(dt):
-            self.game.quitScene()
+        self._static_sprites.update(dt)
+        self.TABS[self._active].update(dt)
+        for k, btn in self._tab_btns.items():
+            if btn.update(dt): self._active = k
+        if self.apply.update(dt): self._apply()
+        if self.back.update(dt):  self.game.quitScene()
 
     def events(self, events):
-        for event in events:
-            if event.type == pygame.QUIT:
-                self.game.quitGame()
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+        for e in events:
+            if e.type == pygame.QUIT: self.game.quitGame()
+            if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
                 self.game.quitScene()
-
+            self.TABS[self._active].events([e])
 
     def draw(self):
+        s = self._s  # scale fijo — no lee config en caliente
         screen = self.game.screen
-        s = ResourceManager.getConfig().getint("video", "scale")
-        font = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 7 * s)
-
         screen.fill((255, 255, 255))
+        pygame.draw.line(screen, (180, 180, 180), (10 * s, 24 * s), (200 * s, 24 * s), 1)
+        self.TABS[self._active].draw(screen, s, self._font)
+        if self._pending:
+            surf = self._font.render("Reinicia para aplicar", False, (200, 80, 80))
+            surf.set_colorkey(surf.get_at((0, 0)))
+            screen.blit(surf, (15 * s, 150 * s))
+        self._static_sprites.draw(screen)
 
-        # Línea separadora bajo las tabs
-        tab_line_y = 22 * s
-        pygame.draw.line(screen, (180, 180, 180), (10 * s, tab_line_y), (190 * s, tab_line_y), 1)
 
-        # Filas de la sección activa
-        rows = SECTIONS[self._active_section]
-        row_x     = 15 * s
-        value_x   = 120 * s
-        row_y     = 30 * s
-        row_gap   = 12 * s
-
-        for label, value in rows:
-            label_surf = font.render(label, False, (80, 80, 80))
-            value_surf = font.render(value, False, (120, 120, 120))
-            label_surf.set_colorkey(label_surf.get_at((0, 0)))
-            value_surf.set_colorkey(value_surf.get_at((0, 0)))
-            screen.blit(label_surf, (row_x, row_y))
-            screen.blit(value_surf, (value_x, row_y))
-            row_y += row_gap
-
-        self.sprite_group.draw(screen)
-
+# ─────────────────────────────────────────────────────────────────────
+# PauseScene
+# ─────────────────────────────────────────────────────────────────────
 class PauseScene(abstract.Scene):
- 
     def __init__(self, game, name="pause"):
         super().__init__(game, name)
-        self.parent_scene = game.sceneStack[-1]
- 
-        s    = ResourceManager.getConfig().getint("video", "scale")
-        font = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 12 * s)
- 
-        self.resumeButton   = objects.TextButton(font, "Resume",   20 * s, 50 * s)
-        self.settingsButton = objects.TextButton(font, "Settings", 20 * s, 100 * s)
-        self.quitButton     = objects.TextButton(font, "Quit",     20 * s, 150 * s)
- 
-        self.sprite_group = pygame.sprite.Group(
-            self.resumeButton.graphic,
-            self.settingsButton.graphic,
-            self.quitButton.graphic,
-        )
- 
+        self._parent  = game.sceneStack[-1] if game.sceneStack else None
+        self.resume   = objects.TextButton("Resume",   20,  50)
+        self.settings = objects.TextButton("Settings", 20,  70)
+        self.quit     = objects.TextButton("Quit",     20,  90)
+        self.sprites  = pygame.sprite.Group(
+            self.resume.graphic, self.settings.graphic, self.quit.graphic)
+
     def update(self, dt):
-        self.sprite_group.update(dt)
- 
-        if self.resumeButton.update(dt):
-            self.game.quitScene()
-        if self.settingsButton.update(dt):
-            self.game.switchScene(SettingsScene(self.game, "settings-menu"))
-        if self.quitButton.update(dt):
-            self.game.changeScene(MainMenu(self.game, "main_menu"))
- 
+        self.sprites.update(dt)
+        if self.resume.update(dt):   self.game.quitScene()
+        if self.settings.update(dt): self.game.switchScene(SettingsScene(self.game))
+        if self.quit.update(dt):     self.game.changeScene(MainMenu(self.game))
+
     def events(self, events):
-        for event in events:
-            if event.type == pygame.QUIT:
-                self.game.quitGame()
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+        for e in events:
+            if e.type == pygame.QUIT: self.game.quitGame()
+            if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
                 self.game.quitScene()
- 
+
     def draw(self):
-        # Dibuja la escena de juego detrás para que se vea el estado actual
-        self.parent_scene.draw()
- 
-        # Overlay semitransparente
-        overlay = pygame.Surface(self.game.screen.get_size(), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 120))
-        self.game.screen.blit(overlay, (0, 0))
- 
-        self.sprite_group.draw(self.game.screen)
+        if self._parent: self._parent.draw()
+        ov = pygame.Surface(self.game.screen.get_size(), pygame.SRCALPHA)
+        ov.fill((0, 0, 0, 120))
+        self.game.screen.blit(ov, (0, 0))
+        self.sprites.draw(self.game.screen)

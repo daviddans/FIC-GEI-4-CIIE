@@ -1,7 +1,5 @@
 from configparser import ConfigParser
-
 import pygame
-import components
 import os
 import json
 from configparser import ConfigParser
@@ -10,9 +8,12 @@ from pytmx.util_pygame import load_pygame
 class ResourceManager:
     #Cache dictionary
     _resources = {}
+    # Cambios de config pendientes — no se aplican al config live hasta apply_pending()
+    _pending = {}  # {(section, key): value}
     #Gets an atlas component from cache or disk if it is not cached yet.
     @classmethod
     def getAtlas(cls, name):
+        import components
         if name not in cls._resources:
                 image, cood = cls._read_Atlas(name)
                 atlas = components.Atlas(image, cood)
@@ -69,6 +70,19 @@ class ResourceManager:
                 raise e
             cls._resources[key] = font
         return cls._resources[key]
+
+    @classmethod
+    def set_pending(cls, section, key, value):
+        """Guarda un cambio de config sin aplicarlo al config live."""
+        cls._pending[(section, key)] = value
+
+    @classmethod
+    def apply_pending(cls):
+        """Vuelca los cambios pendientes al config en memoria (llamar antes de escribir a disco)."""
+        cfg = cls.getConfig()
+        for (section, key), value in cls._pending.items():
+            cfg.set(section, key, value)
+        cls._pending.clear()
 
     @classmethod
     def remove_key(cls, name):
@@ -167,4 +181,3 @@ class ResourceManager:
                 raise e
         else:
             raise FileNotFoundError(f"No se encontró el archivo JSON en: {full_path}")
-    

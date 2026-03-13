@@ -5,152 +5,179 @@ import components
 from random import randint
 from resourceManager import ResourceManager
 
-#just a class for create a simple sprite in  a random places for testing purposes
+
 class testTree(abstract.Object):
     def __init__(self):
         super().__init__()
-        config = ResourceManager.getConfig()
         self.pos.topleft = (randint(-100, 1000), randint(-100, 1000))
         self.atlas = ResourceManager.getAtlas("arbol")
-        self.sprite = components.Graphic(self,self.atlas)
+        self.sprite = components.Graphic(self, self.atlas)
         self.sprite.addState("tree", [0])
         self.sprite.setState("tree")
 
+
 class Camera(abstract.Object):
-    def __init__(self, name="camera", pos=(0,0)):
+    def __init__(self, name="camera", pos=(0, 0)):
         super().__init__(name, pos)
-        self.spriteGroups = list()
-        self.pos.size = (ResourceManager.getConfig().getint("video","xres"), ResourceManager.getConfig().getint("video","yres"))
-        self.bounding =  self.pos.scale_by(0.2, 0.2)
+        cfg = ResourceManager.getConfig()
+        self.spriteGroups = []
+        self.pos.size = (cfg.getint("video", "xres"), cfg.getint("video", "yres"))
+        self.bounding  = self.pos.scale_by(0.2, 0.2)
         self.reference = None
 
-    def addGroup(self, group:pygame.sprite.Group):
+    def addGroup(self, group):
         self.spriteGroups.append(group)
 
-    def moveCamera(self, target):
-        #Calculamos la fueza con la que se tiene que mover la camara teninendo en cuenta la distancia maxima de la pantalla. (Utilizamos la distancia cuadrada pa ir mas rapido)
-        max_distance = (self.pos.size[0] ** 2 +  self.pos.size[1]**2)  / 4 # <- Un objeto se puede alejar como mucho la mitad de la diagonal. Como empleamos el cuadrado pues entre 4
-        vector = pygame.math.Vector2(target)
-        strength = vector.distance_squared_to(self.pos.center) / max_distance
-        strength = pygame.math.clamp((1 - strength * 0.2), 0.5, 1) # Hacemos un clamp para que no pete con un minimo para que no se aproxime infinitamente
-        vector = vector.lerp(self.pos.center, strength) # 1 -> Se queda en el centro de la camara, 0 -> se queda en la posicion target
-        self.pos.center = (vector.x, vector.y)
-        self.bounding.center = self.pos.center
-        #update listeners
-        for group in self.spriteGroups:
-            for sprite in group.sprites():
-                sprite.cameraUpdate(self.pos.topleft)
-                
-    def setReference(self, ref:abstract.Object):
+    def setReference(self, ref):
         self.reference = ref
-        #initial center on the reference
         self.pos.center = (ref.pos[0], ref.pos[1])
         self.bounding.center = self.pos.center
-        #update listeners
+        self._notify()
+
+    def update(self, dt):
+        if self.reference and not self.bounding.collidepoint(self.reference.pos.topleft):
+            self._move(self.reference.pos.topleft)
+
+    def _move(self, target):
+        max_dist = (self.pos.w ** 2 + self.pos.h ** 2) / 4
+        v = pygame.math.Vector2(target)
+        strength = pygame.math.clamp(1 - v.distance_squared_to(self.pos.center) / max_dist * 0.2, 0.5, 1)
+        v = v.lerp(self.pos.center, strength)
+        self.pos.center = (v.x, v.y)
+        self.bounding.center = self.pos.center
+        self._notify()
+
+    def _notify(self):
         for group in self.spriteGroups:
             for sprite in group.sprites():
                 sprite.cameraUpdate(self.pos.topleft)
 
-    def update(self,dt):
-        if self.reference is not None :
-            if not self.bounding.collidepoint(self.reference.pos.topleft):
-                self.moveCamera(self.reference.pos.topleft)
 
 class tileMap(abstract.Object):
-
-    def __init__(self, tmx, name="tilemap", pos=(0,0), groups = []):
+    def __init__(self, tmx, name="tilemap", pos=(0, 0), groups=[]):
         super().__init__(name, pos)
-        self.tmx = ResourceManager.getTileMap(tmx)
+        self.tmx       = ResourceManager.getTileMap(tmx)
         self.reachable = [[]]
-        self.sprite = components.Graphic(self,None)
-        self.sprite.image = self._render_map() #Override image
-        self.sprite.rect = self.sprite.image.get_rect()
+        self.sprite    = components.Graphic(self, None)
+        self.sprite.image = self._render_map()
+        self.sprite.rect  = self.sprite.image.get_rect()
 
     def update(self, dt):
-        # forward to the sprite component so camera offsets are applied
         self.sprite.update(dt)
 
-    # Predenderizamos el mapa completo y lo envolvemos en nuestra clase grafica
     def _render_map(self):
-            # Creamos superficies del tamaño total del mapa (sin escala) para
-            # optimizar; aplicaremos el escalado global de una sola vez al
-            # final, igual que hacemos en Atlas.
-            tile_size = ResourceManager.getConfig().getint("engine", "tile_size")
-            width = self.tmx.width * tile_size
-            height = self.tmx.height * tile_size
-            self.reachable = [[0 for x in range(self.tmx.width)] for y in range(self.tmx.height)]
-            temp_surf = pygame.Surface((width, height), pygame.SRCALPHA)
-            for layer in self.tmx.layers:
-                if (isinstance(layer, pytmx.TiledTileLayer) and layer.visible):
-                    for x, y, gid in layer:
-                        props = self.tmx.get_tile_properties_by_gid(gid)
-                        if props and props.get("reachable"):
-                            self.reachable[y][x] = 1
-                        tile = self.tmx.get_tile_image_by_gid(gid)
-                        if tile:
-                            temp_surf.blit(tile, (x * self.tmx.tilewidth,
-                                                   y * self.tmx.tileheight))
+        cfg       = ResourceManager.getConfig()
+        tile_size = cfg.getint("engine", "tile_size")
+        scale     = cfg.getint("video", "scale")
+        w = self.tmx.width  * tile_size
+        h = self.tmx.height * tile_size
+        self.reachable = [[0] * self.tmx.width for _ in range(self.tmx.height)]
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        for layer in self.tmx.layers:
+            if isinstance(layer, pytmx.TiledTileLayer) and layer.visible:
+                for x, y, gid in layer:
+                    props = self.tmx.get_tile_properties_by_gid(gid)
+                    if props and props.get("reachable"):
+                        self.reachable[y][x] = 1
+                    tile = self.tmx.get_tile_image_by_gid(gid)
+                    if tile:
+                        surf.blit(tile, (x * self.tmx.tilewidth, y * self.tmx.tileheight))
+        if scale != 1:
+            surf = pygame.transform.scale(surf, (w * scale, h * scale))
+        return surf
 
-            # ahora aplicamos la escala global a cada capa de una sola vez
-            scale = ResourceManager.getConfig().getint("video", "scale")
-            if scale != 1:
-                new_size = (temp_surf.get_width() * scale,
-                                temp_surf.get_height() * scale)
-                temp_surf = pygame.transform.scale(temp_surf, new_size)
-
-            return temp_surf
 
 class TextButton(abstract.Object):
     """
-    Botón reutilizable basado en texto. Implementa abstract.Object completo.
-    Expone self.graphic para que la escena lo añada a su sprite group.
- 
-    El texto se escala con el parámetro scale del config, igual que Atlas.
- 
-    Uso futuro con sprites:
-        btn.graphic.addState("idle", [0, 1, 2])
-        btn.graphic.setState("idle")
+    Boton de texto para menus.
+    - x, y, font_size en unidades BASE. Scale se aplica internamente.
+    - Para animar: asigna un atlas y usa addState/setState en self.graphic.
     """
- 
-    def __init__(self, font: pygame.font.Font, label: str, x: int, y: int, antialias = False):
+    def __init__(self, label: str, x: int, y: int,
+                 font_size: int = 8,
+                 font_name: str = "CaskaydiaCoveNerdFont-Regular.ttf"):
         super().__init__("text_button", (x, y))
-        # Renderizar y escalar igual que hace Atlas con los sprites
-        text_surf = font.render(label, color=(80, 80, 80), antialias=antialias)
- 
-        # Graphic sin atlas: sobreescribimos image y rect directamente
-        self.graphic = components.Graphic(self, None)
-        self.graphic.image = text_surf
-        self.graphic.rect  = text_surf.get_rect(topleft=(x, y))
- 
-        # Estado de clic (misma lógica que Button original)
-        self._clicked = False
- 
-    def update(self, dt: float) -> bool:
-        """Devuelve True el frame en que se hace clic."""
-        # Graphic.update() sobreescribiría rect con parent.pos + camera,
-        # pero en el menú no hay cámara así que pos == topleft correcto.
+        s    = ResourceManager.getConfig().getint("video", "scale")
+        font = ResourceManager.getFont(font_name, font_size * s)
+        surf = font.render(label, False, (80, 80, 80))
+        surf.set_colorkey(surf.get_at((0, 0)))
+        self.graphic       = components.Graphic(self, None)
+        self.graphic.image = surf
+        self.graphic.rect  = surf.get_rect(topleft=self.pos.topleft)
+        self._clicked      = False
+
+    def update(self, dt) -> bool:
         self.graphic.update(dt)
- 
-        action = False
-        pos = pygame.mouse.get_pos()
-        if self.graphic.rect.collidepoint(pos):
-            if pygame.mouse.get_pressed()[0] == 1 and not self._clicked:
+        pressed = pygame.mouse.get_pressed()[0]
+        if self.graphic.rect.collidepoint(pygame.mouse.get_pos()):
+            if pressed and not self._clicked:
                 self._clicked = True
-                action = True
-        if pygame.mouse.get_pressed()[0] == 0:
+                return True
+        if not pressed:
             self._clicked = False
-        return action
- 
-    def events(self, events: list) -> None:
-        pass
- 
-    def draw(self) -> None:
-        pass  # Delegado al Graphic via sprite group de la escena
- 
-    def serialize(self) -> dict:
-        return {"name": self.name, "x": self.pos.x, "y": self.pos.y}
- 
-    def unserialize(self, data: dict) -> None:
-        self.pos.x = data["x"]
-        self.pos.y = data["y"]
-        self.graphic.rect.topleft = (data["x"], data["y"])
+        return False
+
+    def events(self, events):   pass
+    def draw(self):             pass
+    def serialize(self):        return {}
+    def unserialize(self, d):   pass
+
+
+class TextInput(abstract.Object):
+    """
+    Campo de texto editable.
+    - Llama handle_event(event) desde Scene.events().
+    - x, y, font_size en unidades BASE.
+    """
+    BLINK_MS = 500
+
+    def __init__(self, initial: str, x: int, y: int,
+                 font_size: int = 8, max_chars: int = 10,
+                 font_name: str = "CaskaydiaCoveNerdFont-Regular.ttf"):
+        super().__init__("text_input", (x, y))
+        s            = ResourceManager.getConfig().getint("video", "scale")
+        self._font   = ResourceManager.getFont(font_name, font_size * s)
+        self._max    = max_chars
+        self._active = False
+        self._blink  = 0
+        self._show   = True
+        self.value   = initial
+        self.graphic = components.Graphic(self, None)
+        self._render()
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            self._active = self.graphic.rect.collidepoint(event.pos)
+        if not self._active:
+            return
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE:
+                self.value = self.value[:-1]
+            elif event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+                self._active = False
+            elif len(self.value) < self._max and event.unicode.isprintable():
+                self.value += event.unicode
+            self._render()
+
+    def update(self, dt):
+        self.graphic.update(dt)
+        self._blink += dt
+        if self._blink >= self.BLINK_MS:
+            self._blink = 0
+            self._show  = not self._show
+            self._render()
+
+    def _render(self):
+        display = (self.value + "|") if self._active and self._show else self.value
+        if not display:
+            display = " "
+        color = (40, 40, 40) if self._active else (120, 120, 120)
+        surf  = self._font.render(display, False, color)
+        surf.set_colorkey(surf.get_at((0, 0)))
+        self.graphic.image = surf
+        self.graphic.rect  = surf.get_rect(topleft=self.pos.topleft)
+
+    def events(self, events):   pass
+    def draw(self):             pass
+    def serialize(self):        return {"value": self.value}
+    def unserialize(self, d):   self.value = d["value"]; self._render()
