@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import pygame
-
+from resourceManager import ResourceManager
 class Scene: 
     def __init__(self, game, name="unamed"):
         self.game = game
@@ -27,8 +27,9 @@ class Scene:
 
 class Object:
     def __init__(self, name="unamed", pos = (0,0)):
+        scale = ResourceManager().getConfig().getint("video", "scale")
         self.name = name
-        self.pos = pygame.rect.Rect(pos, (0,0))
+        self.pos = pygame.rect.Rect((pos[0] * scale , pos[1] * scale), (0,0))
   
     def update(self, dt):
         raise NotImplementedError("Object: " + self.name + ". Update method not found, must be given an implementation.\n")
@@ -36,8 +37,9 @@ class Object:
     def events(self, events):
         raise NotImplementedError("Object: " + self.name + ". Events method not found, must be given an implementation.\n")
     
-    def draw(self):
-        raise NotImplementedError("Object: " + self.name + ". Draw method not found, must be given an implementation.\n")
+    def on_collision(self, subject):
+        raise NotImplementedError(f"Object:  {self.name} . on_collision method not found, must be given an implementation. Collided with: {subject.names}\n")
+    
     #para que las entidades guarden sus datos para el json de fase
     def serialize(self):
         raise NotImplementedError("Object: " + self.name + ". Serialize method not found, must be given an implementation.\n")

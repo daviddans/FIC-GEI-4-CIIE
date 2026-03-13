@@ -16,7 +16,7 @@ class Player(abstract.Object):
         self.graphic = components.Graphic(self, self.atlas)
         self.graphic.add(self.graphic_group)
 
-        self.light = components.Graphic(self, ResourceManager.getAtlas("light1"), offset=(-500,-500), primary=False) 
+        self.light = components.Graphic(self, ResourceManager.getAtlas("light1"), offset=(-250,-250), primary=False) 
         self.light.add(self.light_group)
 
         self.graphic.addState("move", [1,2])

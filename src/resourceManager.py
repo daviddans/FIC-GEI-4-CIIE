@@ -1,7 +1,6 @@
 from configparser import ConfigParser
 
 import pygame
-import objects
 import components
 import os
 import json
@@ -59,7 +58,7 @@ class ResourceManager:
             return cls._resources[name]
     @classmethod
     def getFont(cls, name, size):
-        key = f"font:{name}:{size}"
+        key = f"{name}:{size}"
         if key not in cls._resources:
             base_path = cls.getConfig().get("PATH", "fonts_path")
             full_path = os.path.join(base_path, name)
@@ -70,6 +69,22 @@ class ResourceManager:
                 raise e
             cls._resources[key] = font
         return cls._resources[key]
+
+    @classmethod
+    def remove_key(cls, name):
+        try:
+            cls._resources.pop(name)
+        except KeyError:
+            print(f"Key {name} not found in cache")
+        except Exception as e :
+            raise e
+    
+    @classmethod
+    def clear_cahce(cls):
+        try:
+            cls._resources.clear()
+        except Exception as e :
+            raise e
 
     #Cargar de disco un archivo tmx
     def _read_TileMap(name):

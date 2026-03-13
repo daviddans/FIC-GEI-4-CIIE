@@ -4,9 +4,9 @@ import pygame
 import sys
 from pygame.locals import *
 import scenes
-from configparser import ConfigParser
 from resourceManager import ResourceManager
 
+DEF_FLAGS = pygame.SHOWN | pygame.NOFRAME
 #ToDo: implement game as singletone for more security.
 class Game:
     def __init__(self):
@@ -14,9 +14,7 @@ class Game:
         # Buffer: 4096 (recomendado en apuntes para evitar cortes)
         pygame.mixer.pre_init(44100, -16, 2, 4096)
         self.config = ResourceManager.getConfig()
-        self.screen_flags = pygame.SHOWN | pygame.NOFRAME
-        if self.config.getint("video", "fullscreen"): self.screen_flags |= pygame.FULLSCREEN
-        self.screen = pygame.display.set_mode((self.config.getint("video", "xres"), self.config.getint("video", "yres")),flags=self.screen_flags)
+        self.updateDisplay()
         self.sceneStack = [scenes.MainMenu(self,"MainMenu")]
         self.clock = pygame.time.Clock()
         
@@ -60,8 +58,19 @@ class Game:
         self.sceneQuitFlg = True #with comeback
         self.sceneStack.append(scene)
 
-
-
+    def updateDisplay(self):
+        #Reload config
+        ResourceManager.remove_key("config")
+    
+        xres = ResourceManager.getConfig().getint("video", "xres")
+        yres = ResourceManager.getConfig().getint("video", "yres")
+        fullscren = ResourceManager.getConfig().getint("video", "fullscreen")
+        #Aply new settings
+        if fullscren : flags = DEF_FLAGS | pygame.FULLSCREEN
+        else : flags = DEF_FLAGS
+        self.screen = pygame.display.set_mode((xres, yres), flags=flags)
+        pygame.display.set_caption(ResourceManager.getConfig().get("engine", "title", fallback="Unighted"))
+    
 if __name__ == "__main__":
     game = Game()
     game.run()

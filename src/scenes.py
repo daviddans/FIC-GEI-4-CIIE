@@ -78,7 +78,6 @@ class TestScene(abstract.Scene):
         }
    
         tmx_data = self.map.tmx
-        scale = ResourceManager.getConfig().getint("video", "scale")
 
         for obj in tmx_data.objects:
           
@@ -86,9 +85,9 @@ class TestScene(abstract.Scene):
             
             if clase_obj:
                 props = obj.properties 
-                scaled_pos = (obj.x * scale, obj.y * scale)
+                pos = (obj.x , obj.y)
                 
-                nuevo_obj = clase_obj(pos=scaled_pos, graphic_group=self.groups["TestGroup"], light_group=self.groups["lights"],**props)
+                nuevo_obj = clase_obj(pos=pos, graphic_group=self.groups["TestGroup"], light_group=self.groups["lights"],**props)
             
                 ent_id = obj.name if obj.name else str(obj.id)
                 self.entities_dict[ent_id] = nuevo_obj
