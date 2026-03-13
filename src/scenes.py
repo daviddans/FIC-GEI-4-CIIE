@@ -17,11 +17,10 @@ class TestScene(abstract.Scene):
             "dynamic": pygame.sprite.Group(),
             "lights":  pygame.sprite.Group(),
         }
-        self.entities_dict = {}
         self.rooms = []
         self.player = None
         self.light_screen  = self.game.screen.copy()
-        self.map    = objects.tileMap("TestMap")
+        self.map    = objects.tileMap("TestGigante")
         self.camera = objects.Camera()
         self.map.sprite.add(self.groups["static"])
         self.camera.addGroup(self.groups["static"])
@@ -41,9 +40,14 @@ class TestScene(abstract.Scene):
                 if event.key == pygame.K_ESCAPE: self.game.switchScene(PauseScene(self.game))
 
     def update(self, dt):
+        if not self.player:
+            return
         self.player.update(dt, map=self.map.reachable)
-        for eid, ent in self.entities_dict.items():
-            if eid != "player":
+        updated = {self.player}
+        for sprite in self.groups["dynamic"].sprites():
+            ent = sprite.parent
+            if ent not in updated:
+                updated.add(ent)
                 ent.update(dt, self.player.pos.topleft)
         self.groups["static"].update(dt)
         self.groups["dynamic"].update(dt)
@@ -84,29 +88,30 @@ class TestScene(abstract.Scene):
     def _load_from_tiled(self):
         scale = ResourceManager.getConfig().getint("video", "scale")
         classes = {"Player": player.Player, "Switch": Switch, "Door": Door}
+        temp = {}  # solo para resolver referencias entre entidades al cargar
         for obj in self.map.tmx.objects:
-            if obj.type == "Room":
+            obj_type = obj.type.strip()
+            if obj_type == "Room":
                 self.rooms.append(pygame.Rect(
                     obj.x * scale, obj.y * scale,
                     obj.width * scale, obj.height * scale
                 ))
                 continue
-            cls = classes.get(obj.type)
+            cls = classes.get(obj_type)
             if not cls:
                 continue
             ent = cls(pos=(obj.x, obj.y), graphic_group=self.groups["dynamic"],
                       light_group=self.groups["lights"], **obj.properties)
-            eid = obj.name or str(obj.id)
-            self.entities_dict[eid] = ent
-            if obj.type == "Player":
+            temp[obj.name or str(obj.id)] = ent
+            if obj_type == "Player":
                 self.player = ent
-        for eid, ent in self.entities_dict.items():
+        for ent in temp.values():
             if not hasattr(ent, "target") or not ent.target:
                 continue
             names = str(ent.target).split(",")
             ent.target_objects = []
             for name in names:
-                r = self.entities_dict.get(name.strip())
+                r = temp.get(name.strip())
                 if r:
                     ent.add_observer(r)
                     ent.target_objects.append(r)
