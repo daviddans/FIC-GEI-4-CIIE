@@ -12,8 +12,8 @@ class Switch(abstract.Object, abstract.Observable):
         self.target = target_object
         self.atlas = ResourceManager.getAtlas("interruptor")
         self.graphic = components.Graphic(self, self.atlas)
-        if graphic_group:
-            self.graphic.add(graphic_group)
+        
+        self.graphic.add(graphic_group)
         
         self.graphic.addState("switch-off", [0]) 
         self.graphic.addState("switch-on", [1])

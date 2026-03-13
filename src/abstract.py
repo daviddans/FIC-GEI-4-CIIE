@@ -65,3 +65,8 @@ class Observable:
     def notify(self, entity, event):
         for observer in self.observers:
             observer.on_notify(entity, event)
+
+class Behavior(ABC):
+    @abstractmethod
+    def update(self, npc, dt):
+        pass

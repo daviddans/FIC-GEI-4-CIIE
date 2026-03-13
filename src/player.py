@@ -22,9 +22,9 @@ class Player(abstract.Object):
         self.graphic.addState("move", [1,2])
         self.graphic.addState("idle", [0])
         self.graphic.setState("idle")
-
         self.input = components.Input(self)
         self.move = components.Movement(self, speed=speed)
+        self.health = components.Health(max_hp=3)
         self.animation_end = False
         self.animation_time_elapsed = 0
         self.move_animation_speed = 400
@@ -44,7 +44,7 @@ class Player(abstract.Object):
             self.graphic.setState("idle")
         #Si en la actualizacion anterior se resetea la animacion
 
-        #Actualizar animacions
+        #Actualizar animaciones
         self.animation_time_elapsed += dt
         if self.animation_time_elapsed >= self.move_animation_speed:
             self.animation_time_elapsed = 0

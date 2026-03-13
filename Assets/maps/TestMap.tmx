@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="9">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="10">
  <tileset firstgid="1" name="tilemapLab01" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="tilemapLab01.png" width="256" height="256"/>
   <tile id="2">
@@ -50,6 +50,11 @@
    </properties>
   </object>
   <object id="8" x="207.256" y="133.674"/>
+  <object id="9" name="shadow" type="Shadow" x="91.9775" y="120.184">
+   <properties>
+    <property name="behavior" value="chase"/>
+   </properties>
+  </object>
  </objectgroup>
  <layer id="5" name="Floor" width="30" height="20">
   <data encoding="csv">

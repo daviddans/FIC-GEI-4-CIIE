@@ -14,8 +14,8 @@ class Door(abstract.Object, abstract.Observer):
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas)
         
-        if graphic_group:
-            self.graphic.add(graphic_group)
+       
+        self.graphic.add(graphic_group)
 
         self.graphic.addState("locked", [0])   
         self.graphic.addState("unlocked", [1])  

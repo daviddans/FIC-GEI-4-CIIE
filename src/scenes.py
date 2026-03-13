@@ -6,6 +6,9 @@ from switch import Switch
 from door import Door
 from objects import LightObject
 
+from shadow import Shadow
+from components import ChasePlayer, Health
+from healthHUD import HealthHUD
 
 # ─────────────────────────────────────────────────────────────────────
 # TestScene
@@ -33,6 +36,7 @@ class TestScene(abstract.Scene):
         self._load_from_tiled()
         if self.player:
             self.camera.setReference(self.player)
+            self.health_hud = HealthHUD(self.player)
         SaveManager.load(self)
 
     def events(self, events):
@@ -40,6 +44,8 @@ class TestScene(abstract.Scene):
             if event.type == pygame.QUIT:
                 self.game.quitGame()
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_k:
+                    self.player.health.take_damage(0.5)
                 if event.key == pygame.K_g:      SaveManager.save(self)
                 if event.key == pygame.K_ESCAPE: self.game.switchScene(PauseScene(self.game))
 
@@ -56,6 +62,9 @@ class TestScene(abstract.Scene):
                     ent.update(dt, self.player.pos.topleft)
         for g in self.groups.values():
             g.update(dt)
+        if self.player.health.is_dead:
+            self.game.switchScene(GameOverScene(self.game))
+            return
         self.camera.update(dt)
 
     def draw(self):
@@ -66,12 +75,9 @@ class TestScene(abstract.Scene):
         for sprite in self.groups["map_back"].sprites():
             if screen_rect.colliderect(sprite.rect):
                 self.game.screen.blit(sprite.image, sprite.rect)
-
-        # 2. Entidades: static + dynamic Y-sorted juntas
-        all_ents = (self.groups["static"].sprites() +
-                    self.groups["dynamic"].sprites())
-        for sprite in sorted(all_ents, key=lambda s: s.rect.bottom):
-            self.game.screen.blit(sprite.image, sprite.rect)
+        
+        self.groups["static"].draw(self.game.screen)
+        self.groups["dynamic"].draw(self.game.screen)
 
         # 3. Mapa foreground (Z > 0): sobre las entidades
         for sprite in self.groups["map_front"].sprites():
@@ -87,6 +93,8 @@ class TestScene(abstract.Scene):
             self.light_screen.blit(sprite.image, sprite.rect, special_flags=pygame.BLEND_RGBA_ADD)
             self.light_screen.set_clip(None)
         self.game.screen.blit(self.light_screen, (0, 0), special_flags=pygame.BLEND_MULT)
+      #  if hasattr(self, 'health_hud'):
+       #     self.health_hud.draw(self.game.screen)
 
     def _room_clip_for(self, world_pos):
         """Rect de la habitación que contiene world_pos, en coordenadas de pantalla."""
@@ -99,7 +107,7 @@ class TestScene(abstract.Scene):
     def _load_from_tiled(self):
         scale = ResourceManager.getConfig().getint("video", "scale")
         static_classes  = {"Switch": Switch, "Door": Door}
-        dynamic_classes = {"Player": player.Player}
+        dynamic_classes = {"Player": player.Player,"Shadow": Shadow}
         temp = {}
         for obj in self.map.tmx.objects:
             obj_type = obj.type.strip()
@@ -122,8 +130,7 @@ class TestScene(abstract.Scene):
                 cls = dynamic_classes[obj_type]
             else:
                 continue
-            ent = cls(pos=(obj.x, obj.y), graphic_group=graphic_group,
-                      light_group=self.groups["lights"], **obj.properties)
+            ent = cls(pos=(obj.x, obj.y), graphic_group=graphic_group,light_group=self.groups["lights"], **obj.properties)
             temp[obj.name or str(obj.id)] = ent
             if obj_type == "Player":
                 self.player = ent
@@ -345,4 +352,50 @@ class PauseScene(abstract.Scene):
         ov = pygame.Surface(self.game.screen.get_size(), pygame.SRCALPHA)
         ov.fill((0, 0, 0, 120))
         self.game.screen.blit(ov, (0, 0))
+        self.sprites.draw(self.game.screen)
+
+# ─────────────────────────────────────────────────────────────────────
+# Game Over Scene
+# ─────────────────────────────────────────────────────────────────────
+
+class GameOverScene(abstract.Scene):
+    def __init__(self, game, name="game_over"):
+        super().__init__(game, name)
+        self._parent = game.sceneStack[-1] if game.sceneStack else None
+        
+        # Botones: Uno para reintentar y otro para salir
+        self.retry = objects.TextButton("Retry", 20, 60)
+        self.quit  = objects.TextButton("Main Menu", 20, 80)
+        
+        self.sprites = pygame.sprite.Group(self.retry.graphic, self.quit.graphic)
+        self.font_big = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 30)
+
+    def update(self, dt):
+        self.sprites.update(dt)
+      
+        if self.retry.update(dt): 
+            self._parent.player.health.reset()
+            SaveManager.load(self._parent)
+            self.game.quitScene()
+       
+        if self.quit.update(dt): 
+            self.game.changeScene(MainMenu(self.game))
+
+    def events(self, events):
+        for e in events:
+            if e.type == pygame.QUIT: self.game.quitGame()
+
+    def draw(self):
+        
+        if self._parent: self._parent.draw()
+        
+        # Capa roja para dar efecto de game over
+        ov = pygame.Surface(self.game.screen.get_size(), pygame.SRCALPHA)
+        ov.fill((150, 0, 0, 150)) # Rojo oscuro
+        self.game.screen.blit(ov, (0, 0))
+        
+        
+        text = self.font_big.render("GAME OVER", True, (255, 255, 255))
+        self.game.screen.blit(text, (20, 20))
+        
         self.sprites.draw(self.game.screen)
