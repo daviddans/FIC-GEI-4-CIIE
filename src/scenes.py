@@ -24,7 +24,7 @@ class TestScene(abstract.Scene):
         self.door1 = door.Door(pos=(600, 200), is_locked=True)
         self.door2 = door.Door(pos=(600, 400), is_locked=True)
         self.door3 = door.Door(pos=(600, 600), is_locked=True)
-        self.sin_luz = Shadow(self.player.pos.x + 50, self.player.pos.y, self.player)
+        self.sin_luz = Shadow((600, 200), self.player)
 
         self.switch1.add_observer(self.door1)
         self.switch1.add_observer(self.door2)
@@ -66,9 +66,9 @@ class TestScene(abstract.Scene):
         self.door1.update(dt, self.player.pos.topleft)
         self.door2.update(dt, self.player.pos.topleft)
         self.door3.update(dt, self.player.pos.topleft)
-        #self.sin_luz.update(dt)
-        #if self.player.pos.colliderect(self.sin_luz.rect):
-       #     self.player.receive_hit(self.sin_luz.damage)
+        self.sin_luz.update(dt)
+        if self.player.pos.colliderect(self.sin_luz.pos):
+          self.player.receive_hit(self.sin_luz.damage)
         self.testGroup.update(dt)
         self.camera.update(dt)
      
@@ -80,6 +80,7 @@ class TestScene(abstract.Scene):
         screen.fill("black")
         self.camera.draw(screen)
         self.health_ui.draw(screen)
+        
         
 
     

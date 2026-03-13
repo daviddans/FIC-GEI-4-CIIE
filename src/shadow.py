@@ -1,41 +1,41 @@
 import pygame
-import math
-from resourceManager import ResourceManager
+import abstract
 import components
+from resourceManager import ResourceManager
 
-class Shadow(pygame.sprite.Sprite):
-    def __init__(self, x, y, player):
-        super().__init__()
+# Hereda de abstract.Object para que sea compatible con tu motor
+class Shadow(abstract.Object):
+    def __init__(self, pos, player, **kwargs):
+        # Usamos el constructor de la clase base
+        super().__init__("Shadow", pos)
         self.player = player 
         
-      
-        self.pos = pygame.Rect(x, y, 32, 32)
-        self.rect = self.pos
-        self.move_vec = pygame.math.Vector2(x, y)
-        
-        self.speed = 1.2 
+        # IA y stats
+        self.move_vec = pygame.math.Vector2(pos)
+        self.speed = 0.1 # Bajamos la velocidad, 1.2 es muchísimo para el dt que manejas
         self.damage = 0.5 
         
+        # Gráficos
         self.atlas = ResourceManager.getAtlas("ShadowTrooper")
         self.graphic = components.Graphic(self, self.atlas)
-        
-        self.graphic.addState("0", [0]) 
-        self.graphic.setState("0") 
+        self.graphic.addState("idle", [0]) 
+        self.graphic.setState("idle") 
 
     def update(self, dt):
+        # Persecución suave
+        target = pygame.math.Vector2(self.player.pos.center)
+        current = pygame.math.Vector2(self.pos.topleft)
         
-        player_pos = pygame.math.Vector2(self.player.pos.x, self.player.pos.y)
-        direction = player_pos - self.move_vec
+        direction = target - current
         distance = direction.length()
 
-        if 10 < distance < 250:
+        if 5 < distance < 300: # Rango de visión
             direction.normalize_ip()
-            self.move_vec += direction * self.speed
-        
-       
+            self.move_vec += direction * self.speed * dt
+            
+        # Actualizamos la posición física (self.pos es el Rect de abstract.Object)
         self.pos.topleft = (self.move_vec.x, self.move_vec.y)
-        self.rect.topleft = self.pos.topleft
 
-    def draw(self, screen, camera_offset):
-        draw_pos = (self.pos.x - camera_offset[0], self.pos.y - camera_offset[1])
-        screen.blit(self.graphic.image, draw_pos)
+    def draw(self, surface):
+        # Este método ahora es compatible con lo que espera tu Cámara
+        self.graphic.draw(surface)
