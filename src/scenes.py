@@ -26,7 +26,7 @@ class TestScene(abstract.Scene):
         if self.player:
             self.camera.setReference(self.player)
             self.health_hud = HealthHUD(self.player)
-        #SaveManager.load(self)
+        SaveManager.load(self)
 
     def events(self, events):
         for event in events:
@@ -315,12 +315,12 @@ class GameOverScene(abstract.Scene):
 
     def update(self, dt):
         self.sprites.update(dt)
-        # Si pulsa Retry, se cambia la escena actual por una nueva TestScene
+      
         if self.retry.update(dt): 
             self._parent.player.health.reset()
             SaveManager.load(self._parent)
             self.game.quitScene()
-        # Si pulsa Quit, se vuelve al menú principal
+       
         if self.quit.update(dt): 
             self.game.changeScene(MainMenu(self.game))
 
@@ -329,15 +329,15 @@ class GameOverScene(abstract.Scene):
             if e.type == pygame.QUIT: self.game.quitGame()
 
     def draw(self):
-        # Dibujamos el juego de fondo (donde murió Nix)
+        
         if self._parent: self._parent.draw()
         
-        # Capa roja semitransparente para dar efecto de muerte
+        # Capa roja para dar efecto de game over
         ov = pygame.Surface(self.game.screen.get_size(), pygame.SRCALPHA)
         ov.fill((150, 0, 0, 150)) # Rojo oscuro
         self.game.screen.blit(ov, (0, 0))
         
-        # Título de GAME OVER
+        
         text = self.font_big.render("GAME OVER", True, (255, 255, 255))
         self.game.screen.blit(text, (20, 20))
         

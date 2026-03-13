@@ -212,13 +212,11 @@ class Health:
         return self.is_dead # Avisa si ha muerto
     
     def heal(self, amount=1):
-        """Aumenta la vida actual sin sobrepasar el máximo"""
         if not self.is_dead:
             self.current_hp = min(self.max_hp, self.current_hp + amount)
             print(f"Curado. Vida actual: {self.current_hp}/{self.max_hp}")
     
     def reset(self):
-        """Devuelve al componente a su estado inicial"""
         self.current_hp = self.max_hp
         self.is_dead = False
 
