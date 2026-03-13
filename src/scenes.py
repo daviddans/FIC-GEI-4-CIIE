@@ -88,7 +88,7 @@ class TestScene(abstract.Scene):
     def _load_from_tiled(self):
         scale = ResourceManager.getConfig().getint("video", "scale")
         classes = {"Player": player.Player, "Switch": Switch, "Door": Door}
-        temp = {}  # solo para resolver referencias entre entidades al cargar
+        temp = {}  
         for obj in self.map.tmx.objects:
             obj_type = obj.type.strip()
             if obj_type == "Room":
