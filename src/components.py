@@ -212,3 +212,19 @@ class Health:
         """Devuelve al componente a su estado inicial"""
         self.current_hp = self.max_hp
         self.is_dead = False
+
+class ChasePlayer(abstract.Behavior):
+    def __init__(self, vision_range=300):
+        self.vision_range = vision_range
+
+    def update(self, npc, dt, player_pos):
+        target = pygame.math.Vector2(player_pos)
+        current = pygame.math.Vector2(npc.pos.topleft)
+        direction = target - current
+        distance = direction.length()
+
+        if 5 < distance < self.vision_range:
+            direction.normalize_ip()
+            # Aplicamos el movimiento al NPC que nos pasen
+            npc.move_vec += direction * npc.speed * dt
+            npc.pos.topleft = (npc.move_vec.x, npc.move_vec.y)

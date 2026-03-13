@@ -24,7 +24,7 @@ class Player(abstract.Object):
         self.graphic.setState("idle")
         self.input = components.Input(self)
         self.move = components.Movement(self, speed=0.5)
-        self.health = components.Health(life)
+        #self.health = components.Health(life)
         self.animation_end = False
         self.animation_time_elapsed = 0
         self.move_animation_speed = 400

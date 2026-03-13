@@ -4,7 +4,8 @@ from resourceManager import ResourceManager
 from saveManager import SaveManager
 from switch import Switch
 from door import Door
-
+from shadow import Shadow
+from components import ChasePlayer
 
 # ─────────────────────────────────────────────────────────────────────
 # TestScene
@@ -23,7 +24,7 @@ class TestScene(abstract.Scene):
         self._load_from_tiled()
         if self.player:
             self.camera.setReference(self.player)
-        SaveManager.load(self)
+        #SaveManager.load(self)
 
     def events(self, events):
         for event in events:
@@ -50,12 +51,17 @@ class TestScene(abstract.Scene):
         self.game.screen.blit(self.light_screen, (0, 0), special_flags=pygame.BLEND_MULT)
 
     def _load_from_tiled(self):
-        classes = {"Player": player.Player, "Switch": Switch, "Door": Door}
+        classes = {"Player": player.Player, "Switch": Switch, "Door": Door, "Shadow": Shadow}
+        behaviors = { "chase": ChasePlayer(vision_range=400)}
         for obj in self.map.tmx.objects:
             cls = classes.get(obj.type)
             if not cls:
                 continue
-            ent = cls(pos=(obj.x, obj.y), graphic_group=self.groups["game"],
+            if obj.type == "Shadow":
+                behavior = obj.properties.get("behavior","chase")
+                ent = cls(pos=(obj.x, obj.y), behavior=behaviors.get(behavior))
+            else:    
+             ent = cls(pos=(obj.x, obj.y), graphic_group=self.groups["game"],
                       light_group=self.groups["lights"], **obj.properties)
             eid = obj.name or str(obj.id)
             self.entities_dict[eid] = ent
