@@ -5,7 +5,7 @@ class HealthHUD:
     def __init__(self, player):
         self.player = player
         self.atlas = ResourceManager.getAtlas("hearts")
-        self.graphic = components.Graphic(None, self.atlas)
+        self.graphic = components.Graphic(None, self.atlas, primary=None)
         self.graphic.addState("full", [0])
         self.graphic.addState("half", [1])
         self.graphic.addState("empty", [2])

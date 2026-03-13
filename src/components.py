@@ -108,6 +108,15 @@ class Input():
     def __init__(self,parent:abstract.Object):
         self.parent = parent
         self.direction = pygame.Vector2(0, 0)
+        cfg = ResourceManager.getConfig()
+
+        #getint porque pygame maneja teclas como numeros
+        self.keys_map = {
+            "up":    cfg.getint("controls", "up"),
+            "down":  cfg.getint("controls", "down"),
+            "left":  cfg.getint("controls", "left"),
+            "right": cfg.getint("controls", "right")
+        }
 
     def get_vector(self):
         return self.direction
@@ -117,10 +126,10 @@ class Input():
         
         x = 0
         y = 0
-        if keys[pygame.K_d] or keys[pygame.K_RIGHT]: x += 1
-        if keys[pygame.K_a] or keys[pygame.K_LEFT]:  x -= 1
-        if keys[pygame.K_s] or keys[pygame.K_DOWN]:  y += 1
-        if keys[pygame.K_w] or keys[pygame.K_UP]:    y -= 1
+        if keys[self.keys_map["right"]]: x += 1
+        if keys[self.keys_map["left"]]:  x -= 1
+        if keys[self.keys_map["down"]]:  y += 1
+        if keys[self.keys_map["up"]]:    y -= 1
         
         self.direction.x = x
         self.direction.y = y

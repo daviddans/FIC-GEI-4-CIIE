@@ -1,11 +1,27 @@
 {
-    "scene_name": "test",
-    "date": "10/03/2026 22:47:10",
+    "scene_name": null,
+    "date": "13/03/2026 19:48:25",
     "entities": {
         "player": {
             "pos": [
-                343,
-                898
+                1013,
+                317
+            ]
+        },
+        "door1": {
+            "is_locked": true
+        },
+        "switch1": {
+            "is_pressed": false
+        },
+        "shadow": {
+            "pos": [
+                99,
+                122
+            ],
+            "move_vec": [
+                99.34140709709531,
+                122.43408272411246
             ]
         }
     }

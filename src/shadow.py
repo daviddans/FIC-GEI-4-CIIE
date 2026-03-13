@@ -21,3 +21,18 @@ class Shadow(abstract.Object):
         
         self.graphic.update(dt)
 
+
+    def serialize(self):
+        return {
+            "pos": self.pos.topleft,
+            "move_vec": (self.move_vec.x, self.move_vec.y)
+        }
+    
+    def unserialize(self, data):
+        # se recupera la posicion del rect
+        if "pos" in data:
+            self.pos.topleft = data["pos"]
+        # se recupera el vector para mantener la fisica 
+        if "move_vec" in data:
+            self.move_vec = pygame.math.Vector2(data["move_vec"])
+
