@@ -1,7 +1,5 @@
 import pygame
 import abstract
-import objects
-import json
 from resourceManager import ResourceManager
 """
 Class to load a full spritesheet ( atlas ) and give subsurface to be used 
@@ -14,6 +12,8 @@ class Atlas():
         size = self.atlas.get_size()
         self.scale = ResourceManager.getConfig().getint("video", "scale")
         self.atlas = pygame.transform.scale(self.atlas,(size[0]*self.scale, size[1]*self.scale))
+        # convert_alpha acelera todos los blits posteriores (una sola vez al cargar)
+        self.atlas = self.atlas.convert_alpha()
         
     def getSprite(self, id):
         info = self.coordinates.get(str(id))
@@ -37,11 +37,14 @@ Implentacion de la clase grafica como una maquina de estados
 Cada estado tiene una lista de ids 
 Durante el update se ira cambiando entre cada id mostrando el subsurface correspondiente del Atlas
 El update devolvera True si se alcanzo el ultimo frame o es unoe
+
+El offset nos permite modificar la posicion de dibujado respecto al padre ( ideal pa la luz)
+primary es un fix pocho, para que un objeto pueda generar varios sprites pero no todos modifiquen su hitbox. (Ej: la luz)
 """
 
 
 class Graphic(pygame.sprite.Sprite):
-    def __init__(self, parent:abstract.Object, atlas:Atlas):
+    def __init__(self, parent:abstract.Object, atlas:Atlas, offset= (0, 0), primary=True):
         super().__init__()
         self.image = None
         self.rect = None
@@ -51,7 +54,10 @@ class Graphic(pygame.sprite.Sprite):
         self.animate= False
         self.parent = parent
         self._atlas = atlas
+        scale = ResourceManager.getConfig().getint("video", "scale")
+        self._offset = (offset[0] * scale, offset[1] * scale)
         self._camera_pos = (0,0)
+        self.primary = primary
         
     def addState(self, name, ids:list[int]):
         if len(ids) <= 0 :
@@ -67,9 +73,7 @@ class Graphic(pygame.sprite.Sprite):
             self._current_frame = 0
             self.image = self._atlas.getSprite(self._states[self.current_state][self._current_frame])
             self.rect = self.image.get_rect()
-            #Actualizar rect del padre (solo si tiene padre) porque por ejemplo el HUD no tiene padre como tal porque no es un objeto físico
-            if self.parent is not None:
-              self.parent.pos.size = self.rect.size
+            if self.primary : self.parent.pos.size = self.rect.size #Actualizar rect del padre.
             updated_state = True
         return updated_state
     
@@ -83,10 +87,9 @@ class Graphic(pygame.sprite.Sprite):
             self.time_elapsed = 0
             last_frame = False
             self.image = self._atlas.getSprite(self._states[self.current_state][self._current_frame])
-            self.rect = self.image.get_rect() #Actualizar rect del padre.
-            self.parent.pos.size = self.rect.size
+            self.rect = self.image.get_rect() 
+            if self.primary : self.parent.pos.size = self.rect.size #Actualizar rect del padre.
             self._current_frame = self._current_frame + 1
-            print(f"FRAME UPDATED. Current frame: {self._current_frame}")
             if self._current_frame == len(self._states[self.current_state]):
 
                 last_frame = True
@@ -94,67 +97,12 @@ class Graphic(pygame.sprite.Sprite):
         return last_frame
     
     def update(self, dt):
-        pos = (self.parent.pos[0] - self._camera_pos[0], self.parent.pos[1] - self._camera_pos[1])
+        pos = (self.parent.pos[0] - self._camera_pos[0] + self._offset[0], self.parent.pos[1] - self._camera_pos[1] + self._offset[1])
         #Actualizar posicion
         self.rect.topleft = pos
 
-
     def cameraUpdate(self, pos):
         self._camera_pos = pos
-
-#Wrapper to make the surface in the tilemap behave like a sprite, so we can use the same camera logic for the map and the objects
-class Tile(pygame.sprite.Sprite):
-    def __init__(self, parent:abstract.Object, layers: list):
-        super().__init__()
-        self.parent = parent
-        self.layers = layers
-        # build a single surface containing every layer in order so that the map
-        # can be treated as a single sprite.  keep the original list around in
-        # case other systems need access to individual layers later.
-        if layers:
-            width = max(layer.get_width() for layer in layers)
-            height = max(layer.get_height() for layer in layers)
-            self.image = pygame.Surface((width, height), pygame.SRCALPHA)
-            for layer in layers:
-                self.image.blit(layer, (0, 0))
-        else:
-            self.image = pygame.Surface((0, 0), pygame.SRCALPHA)
-        self.rect = self.image.get_rect(topleft=parent.pos.topleft)
-        self.camera_pos = (0, 0)
-
-    def update(self, dt):
-        pos = (self.parent.pos[0] - self._camera_pos[0],
-               self.parent.pos[1] - self._camera_pos[1])
-        self.rect.topleft = pos
-
-    def cameraUpdate(self, pos):
-        self._camera_pos = pos
-
-
-#Button may not be an component but a object instead consider refactor
-class Button(abstract.Object):
-    def __init__(self, img, x=0, y=0, scale=1):
-        super().__init__("button",(x, y))
-        width = img.get_width()
-        height = img.get_height()
-        self.img = pygame.transform.scale(img, (int(width*scale), int(height * scale)))
-        self.rect = self.img.get_rect()
-        self.rect.topleft = (x,y)
-        self.clicked = False
-
-    def update(self):
-        action = False
-        pos = pygame.mouse.get_pos()
-        if self.rect.collidepoint(pos):
-             if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
-                self.clicked = True
-                action = True
-        if pygame.mouse.get_pressed()[0] == 0:
-            self.clicked = False
-        return action
-    
-    def draw(self, screen):
-        screen.blit(self.img, (self.rect.x, self.rect.y))
 
 class Input():
     def __init__(self,parent:abstract.Object):
@@ -165,9 +113,6 @@ class Input():
         return self.direction
     
     def update(self):
-        #esto es un poco sucio porque fuerza a pygame a actualizar su estado, hay que revisar como hacerlo bien porque no se mueve el player si no
-        pygame.event.pump() 
-        
         keys = pygame.key.get_pressed()
         
         x = 0
@@ -187,45 +132,57 @@ class Movement():
     def __init__(self, parent:abstract.Object, speed):
         self.parent = parent
         self.speed = speed
-     
+        cfg = ResourceManager.getConfig()
+        scale = cfg.getint("video", "scale")
+        self._scale     = scale
+        self._tile_size = cfg.getint("engine", "tile_size")
+        self.correction = 3 * scale
+        self._x = float(parent.pos.left)
+        self._y = float(parent.pos.top)
+
     def update(self, vector, dt, map):
-        scale = ResourceManager.getConfig().getint("video", "scale")
-        correction = 3 * scale # Correccion para evitar errores pixel perfect
-        #Calcular movimiento
-        move = (vector.x * self.speed * dt, vector.y *self.speed * dt)
-        #Calcular posicion resultante
-        target = (self.parent.pos.left + move[0], self.parent.pos.top + move[1])
+        # Sync externo: si el rect fue movido externamente (ej. unserialize)
+        if abs(self._x - self.parent.pos.left) > 1:
+            self._x = float(self.parent.pos.left)
+        if abs(self._y - self.parent.pos.top) > 1:
+            self._y = float(self.parent.pos.top)
+
+        new_x = self._x + vector.x * self.speed * dt
+        new_y = self._y + vector.y * self.speed * dt
+
+        w = self.parent.pos.width
+        h = self.parent.pos.height
+
         #Comprobar que todas las esquinas vayan a una casilla accesible
         if vector.x > 0 : #Derecha
-            if ( not self.reachable(self.parent.pos.right + move[0], self.parent.pos.top + correction, map) 
-                or not self.reachable(self.parent.pos.right + move[0], self.parent.pos.bottom - correction, map) ):
-                target = (self.parent.pos.left, target[1])
+            if ( not self.reachable(new_x + w, self._y + self.correction, map)
+                or not self.reachable(new_x + w, self._y + h - self.correction, map) ):
+                new_x = self._x
         elif vector.x < 0: #Izquierda
-            if ( not self.reachable(self.parent.pos.left + move[0], self.parent.pos.top + correction, map) 
-                or not self.reachable(self.parent.pos.left + move[0], self.parent.pos.bottom - correction, map) ):
-                target = (self.parent.pos.left, target[1])
+            if ( not self.reachable(new_x, self._y + self.correction, map)
+                or not self.reachable(new_x, self._y + h - self.correction, map) ):
+                new_x = self._x
 
         if vector.y > 0 : #Abajo
-            if ( not self.reachable(self.parent.pos.left + correction, self.parent.pos.bottom + move[1], map) 
-                or not self.reachable(self.parent.pos.right - correction, self.parent.pos.bottom + move[1], map) ):
-                target = (target[0], self.parent.pos.top)
+            if ( not self.reachable(new_x + self.correction, new_y + h, map)
+                or not self.reachable(new_x + w - self.correction, new_y + h, map) ):
+                new_y = self._y
         elif vector.y < 0 : #Arriba
-            if ( not self.reachable(self.parent.pos.left + correction, self.parent.pos.top + move[1], map) 
-                or not self.reachable(self.parent.pos.right - correction, self.parent.pos.top + move[1], map) ):
-                 target = (target[0], self.parent.pos.top)
+            if ( not self.reachable(new_x + self.correction, new_y, map)
+                or not self.reachable(new_x + w - self.correction, new_y, map) ):
+                new_y = self._y
 
-        #actualizar posicion
-        self.parent.pos.topleft = target
-        #print(f"move target to: {target}")
+        self._x = new_x
+        self._y = new_y
+        self.parent.pos.topleft = (int(self._x), int(self._y))
+        #print(f"move target to: {self.parent.pos.topleft}")
 
     #Comprobar si es una posicion alcanzable en una matriz de mapa
     def reachable(self, x_pixel, y_pixel, matrix):
         if matrix is None:
             return True
-        tile_size = ResourceManager.getConfig().getint("engine", "tile_size")
-        scale = ResourceManager.getConfig().getint("video", "scale")
-        grid_x = int(x_pixel // (tile_size*scale))
-        grid_y = int(y_pixel // (tile_size*scale))
+        grid_x = int(x_pixel // (self._tile_size * self._scale))
+        grid_y = int(y_pixel // (self._tile_size * self._scale))
         #print(f"Grid reachability tested:({grid_x}, {grid_y})")
         if 0 <= grid_x < len(matrix[0]) and 0 <= grid_y < len(matrix):
             return matrix[grid_y][grid_x]

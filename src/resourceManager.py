@@ -1,8 +1,5 @@
 from configparser import ConfigParser
-
 import pygame
-import objects
-import components
 import os
 import json
 from configparser import ConfigParser
@@ -11,9 +8,12 @@ from pytmx.util_pygame import load_pygame
 class ResourceManager:
     #Cache dictionary
     _resources = {}
+    # Cambios de config pendientes — no se aplican al config live hasta apply_pending()
+    _pending = {}  # {(section, key): value}
     #Gets an atlas component from cache or disk if it is not cached yet.
     @classmethod
     def getAtlas(cls, name):
+        import components
         if name not in cls._resources:
                 image, cood = cls._read_Atlas(name)
                 atlas = components.Atlas(image, cood)
@@ -48,11 +48,61 @@ class ResourceManager:
             return tmx
         else:
             return cls._resources[name]
+    #Gets a json file 
+    @classmethod
+    def getJSON(cls, name):
+        if name not in cls._resources:
+            json_data = cls._read_JSON(name)
+            cls._resources[name] = json_data
+            return json_data
+        else:
+            return cls._resources[name]
+    @classmethod
+    def getFont(cls, name, size):
+        key = f"{name}:{size}"
+        if key not in cls._resources:
+            base_path = cls.getConfig().get("PATH", "fonts_path")
+            full_path = os.path.join(base_path, name)
+            try:
+                font = pygame.font.Font(full_path, size)
+            except Exception as e:
+                print(f"Error cargando fuente '{full_path}': {e}")
+                raise e
+            cls._resources[key] = font
+        return cls._resources[key]
 
+    @classmethod
+    def set_pending(cls, section, key, value):
+        """Guarda un cambio de config sin aplicarlo al config live."""
+        cls._pending[(section, key)] = value
 
-    #Cargar un archivo tmx
+    @classmethod
+    def apply_pending(cls):
+        """Vuelca los cambios pendientes al config en memoria (llamar antes de escribir a disco)."""
+        cfg = cls.getConfig()
+        for (section, key), value in cls._pending.items():
+            cfg.set(section, key, value)
+        cls._pending.clear()
+
+    @classmethod
+    def remove_key(cls, name):
+        try:
+            cls._resources.pop(name)
+        except KeyError:
+            print(f"Key {name} not found in cache")
+        except Exception as e :
+            raise e
+    
+    @classmethod
+    def clear_cahce(cls):
+        try:
+            cls._resources.clear()
+        except Exception as e :
+            raise e
+
+    #Cargar de disco un archivo tmx
     def _read_TileMap(name):
-        base_path = ResourceManager.getConfig().get("engine", "assets_path")
+        base_path = ResourceManager.getConfig().get("PATH", "maps_path")
         full_path = os.path.join(base_path, name +".tmx")
         if os.path.exists(full_path):
             try:
@@ -63,9 +113,9 @@ class ResourceManager:
                 raise e
         return tmx_data
     
-    #Cargar archivos que componen un atlas.
+    #Cargar de disco archivos que componen un atlas.
     def _read_Atlas(name):
-        base_path = ResourceManager.getConfig().get("engine", "assets_path")
+        base_path = ResourceManager.getConfig().get("PATH", "sprites_path")
         full_path = os.path.join(base_path, name)
         image = None
         cood = None
@@ -79,7 +129,7 @@ class ResourceManager:
                     print(f"Error loading image '{full_path + ext}' : {e}")
                     raise e
         if image is None:
-            raise FileNotFoundError(f"No se encontró el archivo de imagen para el atlas '{name}'")
+            raise FileNotFoundError(f"No se encontró el archivo de imagen para el atlas {name}")
         try:
             cood = json.load(open(full_path + ".json", "r"))
         except Exception as e:
@@ -89,9 +139,9 @@ class ResourceManager:
             raise FileNotFoundError(f"No se encontró el archivo de coordenadas para el atlas '{name}'")
         return image, cood
     
-    #Cargar archivos de sonido
+    #Cargar de disco archivos de sonido
     def _read_Sound(name):
-        base_path = ResourceManager.getConfig().get("engine", "assets_path")
+        base_path = ResourceManager.getConfig().get("PATH", "sounds_path")
         full_path = os.path.join(base_path, name)
         extensions = ['.wav', '.ogg', '.mp3']
         for ext in extensions:
@@ -104,7 +154,7 @@ class ResourceManager:
                     raise e
         raise FileNotFoundError(f"No se encontró el archivo de sonido para '{name}'")
 
-    #Leer archivo de configuración
+    #Leer archivo de configuración de disco
     def _read_Config():
         conf = ConfigParser()
         try:
@@ -113,37 +163,21 @@ class ResourceManager:
             raise FileNotFoundError("No se encuentra config.ini")
         return conf
     
-
-""""
-### Funciones antiguas de ale, las conservo de momento por si aca ###
-    def get(cls, key):
-        if key not in cls._resources:
-            if "." in key: #si no se ha registrado el recurso, se intenta buscar en disco
-                cls._resources[key] = cls.load_from_disk(key)
-            else:
-                print(f"Error: El recurso '{key}' no está registrado ni es un archivo.")
-                return None
-        return cls._resources[key]
-    
-    def _register(cls, key, instance):
-        #almacena instancias en _resources
-        cls._resources[key] = instance
-    
-    #para recursos estáticos tipo imagenes, jsons y sonidos (de momento)
-    def load_from_disk(cls, path):
-
-        base_path = cls.get("config").get("engine", "assets_path")
-        full_path = os.path.join(base_path, path)
-        extension = path.split('.')[-1].lower()
+    #Leer un json de disco
+    def _read_JSON(name):
+        # Usamos el config para saber dónde están los assets
+        base_path = ResourceManager.getConfig().get("engine", "assets_path")
         
-        if extension in ['png', 'jpg']:
-            return pygame.image.load(full_path).convert_alpha()
-        elif extension == 'json':
-            with open(full_path, 'r') as f:
-                return json.load(f)
-            
-        elif extension in ['wav', 'ogg', 'mp3']:
-            return pygame.mixer.Sound(full_path)
+        # Si el nombre ya trae extensión (como .tmj), lo usamos; si no, ponemos .json
+        filename = name if "." in name else name + ".json"
+        full_path = os.path.join(base_path, filename)
         
-        raise Exception(f"Formato no soportado: {extension}")
-    """
+        if os.path.exists(full_path):
+            try:
+                with open(full_path, 'r', encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Error fatal leyendo JSON en '{full_path}': {e}")
+                raise e
+        else:
+            raise FileNotFoundError(f"No se encontró el archivo JSON en: {full_path}")

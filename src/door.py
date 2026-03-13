@@ -4,16 +4,19 @@ import components
 import pygame
 
 class Door(abstract.Object, abstract.Observer):
-    def __init__(self, pos, is_locked=True):
+    def __init__(self, pos, is_locked=True, proximity_range=80, graphic_group=[], light_group=[], **kwargs):
         super().__init__("door", pos)
         
         self.is_locked = is_locked
         self.is_open = False
-        self.proximity_range = 80 # Distancia para que se abra sola
+        self.proximity_range = proximity_range # Distancia para que se abra sola
         
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas)
         
+        if graphic_group:
+            self.graphic.add(graphic_group)
+
         self.graphic.addState("locked", [0])   
         self.graphic.addState("unlocked", [1])  
         self.graphic.addState("opening", [2,3])   
@@ -71,3 +74,11 @@ class Door(abstract.Object, abstract.Observer):
         self.graphic.animate = False
         self.graphic.setState("unlocked") # Vuelve al frame 1 (cerrada pero sin candado)
         print("Puerta cerrada.")
+
+    def serialize(self):
+        return {"is_locked": self.is_locked}
+
+    def unserialize(self, data):
+        self.is_locked = data["is_locked"]
+        if self.is_locked: self.graphic.setState("locked")
+        else: self.graphic.setState("unlocked")
