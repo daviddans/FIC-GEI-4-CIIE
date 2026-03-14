@@ -3,6 +3,7 @@ from pytmx import pytmx
 import abstract
 import components
 from resourceManager import ResourceManager
+from debugLogger import DebugLogger
 
 
 class Camera(abstract.Object):
@@ -84,8 +85,9 @@ class tileMap(abstract.Object):
 
         def _build_chunks(layer_list, group):
             if not layer_list or group is None:
-                return
+                return 0, 0
             chunk_surfs = {}  # (cx, cy) -> Surface
+            tile_count = 0
             for layer in layer_list:
                 for x, y, gid in layer:
                     props = self.tmx.get_tile_properties_by_gid(gid)
@@ -94,6 +96,7 @@ class tileMap(abstract.Object):
                     tile = self.tmx.get_tile_image_by_gid(gid)
                     if not tile:
                         continue
+                    tile_count += 1
                     cx, cy = x // chunk_size, y // chunk_size
                     lx, ly = x % chunk_size, y % chunk_size
                     key = (cx, cy)
@@ -116,9 +119,17 @@ class tileMap(abstract.Object):
                 g.image = surf
                 g.rect  = surf.get_rect()
                 g.add(group)
+            return len(chunk_surfs), tile_count
 
-        _build_chunks(bg_layers, back_group)
-        _build_chunks(fg_layers, front_group)
+        bg_chunks, bg_tiles = _build_chunks(bg_layers, back_group)
+        fg_chunks, fg_tiles = _build_chunks(fg_layers, front_group)
+        DebugLogger.log(
+            "TileMap '%s' baked: map=%dx%d tiles tile_px=%dx%d scale=%d chunk_size=%d | "
+            "bg: %d layers %d chunks %d tiles | fg: %d layers %d chunks %d tiles",
+            self.name, map_w, map_h, tw, th, scale, chunk_size,
+            len(bg_layers), bg_chunks, bg_tiles,
+            len(fg_layers), fg_chunks, fg_tiles
+        )
 
 
 class LightObject(abstract.Object):

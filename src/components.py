@@ -1,6 +1,7 @@
 import pygame
 import abstract
 from resourceManager import ResourceManager
+from debugLogger import DebugLogger
 """
 Class to load a full spritesheet ( atlas ) and give subsurface to be used 
 
@@ -14,12 +15,16 @@ class Atlas():
         self.atlas = pygame.transform.scale(self.atlas,(size[0]*self.scale, size[1]*self.scale))
         # convert_alpha acelera todos los blits posteriores (una sola vez al cargar)
         self.atlas = self.atlas.convert_alpha()
+        DebugLogger.log("Atlas init: original=%dx%d scale=%d -> %dx%d sprites=%d",
+                        size[0], size[1], self.scale,
+                        size[0] * self.scale, size[1] * self.scale,
+                        len(self.coordinates))
         
     def getSprite(self, id):
         info = self.coordinates.get(str(id))
 
         if not info:
-            print(f"Error: ID {id} no encontrado en la seccion {self.key}")
+            DebugLogger.log("Error: ID %s no encontrado en el atlas", id)
             #Si no existe que recorte por defecto 16x16 para que no pete el juego basicamente
             return pygame.Surface((16 * self.scale, 16 * self.scale))
         
@@ -58,6 +63,8 @@ class Graphic(pygame.sprite.Sprite):
         self._offset = (offset[0] * scale, offset[1] * scale)
         self._camera_pos = (0,0)
         self.primary = primary
+        DebugLogger.log("Graphic init: parent='%s' offset=%s primary=%s",
+                        getattr(parent, "name", "?"), self._offset, primary)
         
     def addState(self, name, ids:list[int]):
         if len(ids) <= 0 :
@@ -67,6 +74,8 @@ class Graphic(pygame.sprite.Sprite):
     def setState(self, name):
         updated_state = False
         if name != self.current_state :
+            DebugLogger.log("Graphic setState: parent='%s' '%s' -> '%s'",
+                            getattr(self.parent, "name", "?"), self.current_state, name)
             #Ponemos el estado escogido como actual
             self.current_state = name
             self.animate = len(self._states[self.current_state]) > 0 
@@ -203,18 +212,22 @@ class Health:
         self.max_hp = max_hp
         self.current_hp = max_hp
         self.is_dead = False
+        DebugLogger.log("Health init: max_hp=%d", max_hp)
 
     def take_damage(self, amount=1):
+        hp_before = self.current_hp
         self.current_hp -= amount
         if self.current_hp <= 0:
             self.current_hp = 0
             self.is_dead = True
+        DebugLogger.log("Health take_damage: amount=%d %d -> %d dead=%s",
+                        amount, hp_before, self.current_hp, self.is_dead)
         return self.is_dead # Avisa si ha muerto
     
     def heal(self, amount=1):
         if not self.is_dead:
             self.current_hp = min(self.max_hp, self.current_hp + amount)
-            print(f"Curado. Vida actual: {self.current_hp}/{self.max_hp}")
+            DebugLogger.log("Curado. Vida actual: %s/%s", self.current_hp, self.max_hp)
     
     def reset(self):
         self.current_hp = self.max_hp

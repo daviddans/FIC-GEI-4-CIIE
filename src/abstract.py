@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
 import pygame
 from resourceManager import ResourceManager
-class Scene: 
+from debugLogger import DebugLogger
+
+class Scene:
     def __init__(self, game, name="unamed"):
         self.game = game
         self.name = name
         self.objects = []
+        DebugLogger.log("\n---Scene init: '%s'---\n", name)
     
     def addObject(self, obj):
         self.objects.append(obj)
@@ -63,6 +66,8 @@ class Observable:
         self.observers.append(observer)
 
     def notify(self, entity, event):
+        DebugLogger.log("Observable notify: entity='%s' event='%s' observers=%d",
+                        getattr(entity, "name", repr(entity)), event, len(self.observers))
         for observer in self.observers:
             observer.on_notify(entity, event)
 

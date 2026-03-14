@@ -2,9 +2,11 @@
 
 import pygame
 import sys
+import os
 from pygame.locals import *
 import scenes
 from resourceManager import ResourceManager
+from debugLogger import DebugLogger
 
 DEF_FLAGS = pygame.SHOWN | pygame.NOFRAME
 #ToDo: implement game as singletone for more security.
@@ -14,13 +16,17 @@ class Game:
         # Buffer: 4096 (recomendado en apuntes para evitar cortes)
         pygame.mixer.pre_init(44100, -16, 2, 4096)
         self.config = ResourceManager.getConfig()
+        cfg = self.config
+        DebugLogger.init(
+            enabled=cfg.getboolean("debug", "enabled", fallback=False),
+            log_path=os.path.join(cfg.get("PATH", "user_path"), "debug.log")
+        )
         # Configurar pantalla al arrancar
-        cfg = ResourceManager.getConfig()
-        xres = cfg.getint('video', 'xres')
-        yres = cfg.getint('video', 'yres')
-        flags = DEF_FLAGS | pygame.FULLSCREEN if cfg.getint('video', 'fullscreen') else DEF_FLAGS
+        xres = self.config.getint('video', 'xres')
+        yres = self.config.getint('video', 'yres')
+        flags = DEF_FLAGS | pygame.FULLSCREEN if self.config.getint('video', 'fullscreen') else DEF_FLAGS
         self.screen = pygame.display.set_mode((xres, yres), flags=flags)
-        pygame.display.set_caption(cfg.get('engine', 'title', fallback='Unlighted'))
+        pygame.display.set_caption(self.config.get('engine', 'title', fallback='Unlighted'))
         self.sceneStack = [scenes.MainMenu(self,"MainMenu")]
         self.clock = pygame.time.Clock()
         
@@ -36,7 +42,7 @@ class Game:
             scene.draw()
             pygame.display.flip()
 
-            if dt != 0 : print(f"FPS:{1 / dt * 1000}")
+            if dt != 0: print("FPS: %s", 1 / dt * 1000) # Mostramos los fps por consola
 
     def run(self):
         while (len(self.sceneStack) > 0):
@@ -45,7 +51,8 @@ class Game:
     
     def quitScene(self):
         try:
-            self.sceneStack.pop()
+            popped = self.sceneStack.pop()
+            DebugLogger.log("quitScene: '%s' (stack size now %d)", popped.name, len(self.sceneStack))
             self.sceneQuitFlg = True  # salir del game_loop para que run() coja la siguiente escena
         except IndexError:
             pass
@@ -59,12 +66,14 @@ class Game:
         self.sceneQuitFlg = True
 
     def changeScene(self, scene):
+        DebugLogger.log("changeScene -> '%s'", scene.name)
         self.sceneQuitFlg = True #para actualizar el motor
         self.quitScene() #without comeback
         self.sceneStack.append(scene)
         
 
     def switchScene(self, scene):
+        DebugLogger.log("switchScene -> '%s' (stack size now %d)", scene.name, len(self.sceneStack) + 1)
         self.sceneQuitFlg = True #with comeback
         self.sceneStack.append(scene)
 

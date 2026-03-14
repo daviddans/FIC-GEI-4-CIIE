@@ -5,6 +5,7 @@ import math
 import utils
 import objects
 from resourceManager import ResourceManager
+from debugLogger import DebugLogger
 
 class Player(abstract.Object):
     def __init__(self, pos=(0,0), speed=0.1, graphic_group=None, light_group=None):
@@ -32,6 +33,7 @@ class Player(abstract.Object):
         
         self.light.addState("on", [0,1,2,3,4,5,6])
         self.light.setState("on")
+        DebugLogger.log("Player init: pos=%s speed=%s", pos, speed)
 
     def update(self, dt, map=None):
         self.input.update()

@@ -2,8 +2,10 @@ import pygame
 import abstract
 from components import ChasePlayer, Graphic
 from resourceManager import ResourceManager
+from debugLogger import DebugLogger
 class Shadow(abstract.Object):
-    def __init__(self, pos, graphic_group=[] ,**kwargs):
+    def __init__(self, pos, graphic_group=None, **kwargs):
+        graphic_group = graphic_group or []
         super().__init__("Shadow", pos)
         self.speed = 0.1
         self.move_vec = pygame.math.Vector2(pos)
@@ -14,6 +16,8 @@ class Shadow(abstract.Object):
         self.graphic.add(graphic_group)
         self.graphic.addState("idle", [0])
         self.graphic.setState("idle")
+        DebugLogger.log("Shadow init: pos=%s speed=%s vision_range=%s",
+                        pos, self.speed, self.behavior.vision_range)
 
     def update(self, dt, player_pos):
         if self.behavior:

@@ -76,8 +76,11 @@ class TestScene(abstract.Scene):
             if screen_rect.colliderect(sprite.rect):
                 self.game.screen.blit(sprite.image, sprite.rect)
         
-        self.groups["static"].draw(self.game.screen)
-        self.groups["dynamic"].draw(self.game.screen)
+        # 2. Entidades: static + dynamic Y-sorted juntas
+        all_ents = (self.groups["static"].sprites() +
+                    self.groups["dynamic"].sprites())
+        for sprite in sorted(all_ents, key=lambda s: s.rect.bottom):
+            self.game.screen.blit(sprite.image, sprite.rect)
 
         # 3. Mapa foreground (Z > 0): sobre las entidades
         for sprite in self.groups["map_front"].sprites():
