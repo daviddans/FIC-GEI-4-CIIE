@@ -72,8 +72,7 @@ class tileMap(abstract.Object):
                 continue
             if layer.name and layer.name.lower() == "reachable":
                 for x, y, gid in layer:
-                    props = self.tmx.get_tile_properties_by_gid(gid)
-                    if props and props.get("reachable"):
+                    if gid:
                         self.reachable[y][x] = 1
                 continue
             props_lower = {k.lower(): v for k, v in (layer.properties or {}).items()}
@@ -90,9 +89,6 @@ class tileMap(abstract.Object):
             tile_count = 0
             for layer in layer_list:
                 for x, y, gid in layer:
-                    props = self.tmx.get_tile_properties_by_gid(gid)
-                    if props and props.get("reachable"):
-                        self.reachable[y][x] = 1
                     tile = self.tmx.get_tile_image_by_gid(gid)
                     if not tile:
                         continue
@@ -255,7 +251,7 @@ class TextInput(abstract.Object):
 
 
 class Portal(abstract.Object):
-    COOLDOWN_MS = 500
+    COOLDOWN_MS = 1000
 
     def __init__(self, pos, size=(32,32), name=None, graphic_group=None, **kwargs):
         super().__init__(name or "portal", pos)

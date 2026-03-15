@@ -47,10 +47,10 @@ class Switch(abstract.Object, abstract.Observable):
             DebugLogger.log("Interruptor apagado")
             self.notify(self, 'SWITCH_OFF')
 
-    def serialize(self):
+    def serialize(self): 
         return {"is_pressed": self.is_pressed}
 
     def unserialize(self, data):
         self.is_pressed = data["is_pressed"]
         if self.is_pressed: self.graphic.setState("switch-on")
-        else: self.graphic.setState("switch-off")
+        else: self.graphic.setState("switch-off")  
