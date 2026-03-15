@@ -2,124 +2,285 @@ import pygame
 from pytmx import pytmx
 import abstract
 import components
-from random import randint
 from resourceManager import ResourceManager
+from debugLogger import DebugLogger
 
-#just a class for create a simple sprite in  a random places for testing purposes
-class testTree(abstract.Object):
-    def __init__(self):
-        super().__init__()
-        config = ResourceManager.getConfig()
-        image = pygame.image.load(config.get("engine", "assets_path") + "arbol.png")
-        self.pos.topleft = (randint(-100, 1000), randint(-100, 1000))
-        self.atlas = ResourceManager.getAtlas("arbol")
-        self.sprite = components.Graphic(self,self.atlas)
-        self.sprite.addState("tree", [0])
-        self.sprite.setState("tree")
 
 class Camera(abstract.Object):
-    def __init__(self, name="camera", pos=(0,0)):
+    def __init__(self, name="camera", pos=(0, 0)):
         super().__init__(name, pos)
-        self.spriteGroups = list()
-        size = (ResourceManager.getConfig().getint("video","xres"), ResourceManager.getConfig().getint("video","yres"))
-        self.box = pygame.Rect(self.pos.topleft, size) # AL emplear un rect en la posicion esto es redundandte NEEDFIX
-        print("Camera area:" + str(self.box))
-        self.bounding =  self.box.scale_by(0.2, 0.2)
-        print("Bound area:" + str(self.bounding))
+        cfg = ResourceManager.getConfig()
+        self.spriteGroups = []
+        self.pos.size = (cfg.getint("video", "xres"), cfg.getint("video", "yres"))
+        self.bounding  = self.pos.scale_by(0.2, 0.2)
         self.reference = None
 
-    def addGroup(self, group:pygame.sprite.Group):
+    def addGroup(self, group):
         self.spriteGroups.append(group)
 
-    def moveCamera(self, target, strength=1):
-        #move the camera    
-        DEFAUTL_STRENGTH = 0.9
-        vector = pygame.math.Vector2(target)
-        vector = vector.smoothstep(self.box.center, pygame.math.clamp(DEFAUTL_STRENGTH*strength, 0, 1))
-        self.box.center = (vector.x, vector.y)
-        self.bounding.center = self.box.center
-        self.pos = self.box.topleft
-
-        #update listeners
-        for group in self.spriteGroups:
-            for sprite in group.sprites():
-                sprite.cameraUpdate(self.box.topleft)
-                
-        #print("Camera moved. Target: " + str(target) + "Pos: " + str(self.pos) + " Box:" + str(self.box.topleft) + " bound: " + str(self.bounding.topleft))
-
-
-    def setReference(self, ref:abstract.Object):
+    def setReference(self, ref):
         self.reference = ref
-        #initial center on the reference
-        self.box.center = (ref.pos[0], ref.pos[1])
-        self.bounding.center = self.box.center
-        self.pos = self.box.topleft
-        #print("Camera reference set to: " + str(ref.name) + " at pos: " + str(ref.pos))
-        #print("Camera pos: " + str(self.pos) + " Box:" + str(self.box.topleft) + " bound: " + str(self.bounding.topleft) + "center: " + str(self.box.center))
-        #update listeners
-        for group in self.spriteGroups:
-            for sprite in group.sprites():
-                sprite.cameraUpdate(self.box.topleft)
-
-    def update(self,dt):
-        if self.reference is not None :
-            if not self.bounding.collidepoint(self.reference.pos.topleft):
-                #Recalcular la fuerza del movimiento en funcion de la tasa de fotogramas
-                strength = (dt/1000) * ResourceManager.getConfig().getint("video", "maxfps")
-                self.moveCamera(self.reference.pos.topleft, round(strength))
-            
-    def draw(self, screen):
-        for group in self.spriteGroups:
-            group.draw(screen)
-
-class tileMap(abstract.Object):
-
-    def __init__(self, tmx, name="tilemap", pos=(0,0)):
-        super().__init__(name, pos)
-        # load and cache the TMX data
-        self.tmx = ResourceManager.getTileMap(tmx)
-        self.reachable = [[]]
-        layers = self._render_map()
-        self.sprite = components.Tile(self, layers)
-        print(self.reachable)
+        self.pos.center = (ref.pos[0], ref.pos[1])
+        self.bounding.center = self.pos.center
+        self._notify()
 
     def update(self, dt):
-        # forward to the sprite component so camera offsets are applied
-        self.sprite.update(dt)
+        if self.reference and not self.bounding.collidepoint(self.reference.pos.topleft):
+            self._move(self.reference.pos.topleft)
 
-    # Predenderizamos el mapa completo y lo envolvemos en nuestra clase grafica
-    def _render_map(self):
-            # Creamos superficies del tamaño total del mapa (sin escala) para
-            # optimizar; aplicaremos el escalado global de una sola vez al
-            # final, igual que hacemos en Atlas.
-            tile_size = ResourceManager.getConfig().getint("engine", "tile_size")
-            width = self.tmx.width * tile_size
-            height = self.tmx.height * tile_size
-            layers = []
-            self.reachable = [[0 for x in range(self.tmx.width)] for y in range(self.tmx.height)]
+    def _move(self, target):
+        max_dist = (self.pos.w ** 2 + self.pos.h ** 2) / 4
+        v = pygame.math.Vector2(target)
+        strength = pygame.math.clamp(1 - v.distance_squared_to(self.pos.center) / max_dist * 0.2, 0.5, 1)
+        v = v.lerp(self.pos.center, strength)
+        self.pos.center = (v.x, v.y)
+        self.bounding.center = self.pos.center
+        self._notify()
 
-            for layer in self.tmx.layers:
-                if (isinstance(layer, pytmx.TiledTileLayer) and layer.visible):
-                    temp_surf = pygame.Surface((width, height), pygame.SRCALPHA)
-                    for x, y, gid in layer:
-                        props = self.tmx.get_tile_properties_by_gid(gid)
-                        if props and props.get("reachable"):
-                            self.reachable[y][x] = 1
-                        tile = self.tmx.get_tile_image_by_gid(gid)
-                        if tile:
-                            temp_surf.blit(tile, (x * self.tmx.tilewidth,
-                                                   y * self.tmx.tileheight))
-                    layers.append(temp_surf)
+    def _notify(self):
+        for group in self.spriteGroups:
+            for sprite in group.sprites():
+                sprite.cameraUpdate(self.pos.topleft)
 
-            # ahora aplicamos la escala global a cada capa de una sola vez
-            scale = ResourceManager.getConfig().getint("video", "scale")
-            if scale != 1:
-                scaled = []
-                for layer in layers:
-                    new_size = (layer.get_width() * scale,
-                                layer.get_height() * scale)
-                    scaled.append(pygame.transform.scale(layer, new_size))
-                return scaled
 
-            return layers
+class tileMap(abstract.Object):
+    def __init__(self, tmx, name="tilemap", pos=(0, 0),
+                 back_group=None, front_group=None):
+        super().__init__(name, pos)
+        self.tmx       = ResourceManager.getTileMap(tmx)
+        self.reachable = [[]]
+        self._render_map(back_group, front_group)
 
+    def update(self, dt):
+        pass  # chunk sprites are updated via their sprite groups in the scene
+
+    def _render_map(self, back_group, front_group):
+        cfg        = ResourceManager.getConfig()
+        scale      = cfg.getint("video", "scale")
+        chunk_size = cfg.getint("engine", "chunk_size", fallback=32)
+        map_w      = self.tmx.width
+        map_h      = self.tmx.height
+        tw         = self.tmx.tilewidth
+        th         = self.tmx.tileheight
+        self.reachable = [[0] * map_w for _ in range(map_h)]
+
+        # Classify layers: "reachable" mask only; Z>0 → foreground; rest → background
+        bg_layers = []
+        fg_layers = []
+        for layer in self.tmx.layers:
+            if not isinstance(layer, pytmx.TiledTileLayer) or not layer.visible:
+                continue
+            if layer.name and layer.name.lower() == "reachable":
+                for x, y, gid in layer:
+                    props = self.tmx.get_tile_properties_by_gid(gid)
+                    if props and props.get("reachable"):
+                        self.reachable[y][x] = 1
+                continue
+            props_lower = {k.lower(): v for k, v in (layer.properties or {}).items()}
+            z = int(props_lower.get("z", 0))
+            if z > 0:
+                fg_layers.append(layer)
+            else:
+                bg_layers.append(layer)
+
+        def _build_chunks(layer_list, group):
+            if not layer_list or group is None:
+                return 0, 0
+            chunk_surfs = {}  # (cx, cy) -> Surface
+            tile_count = 0
+            for layer in layer_list:
+                for x, y, gid in layer:
+                    props = self.tmx.get_tile_properties_by_gid(gid)
+                    if props and props.get("reachable"):
+                        self.reachable[y][x] = 1
+                    tile = self.tmx.get_tile_image_by_gid(gid)
+                    if not tile:
+                        continue
+                    tile_count += 1
+                    cx, cy = x // chunk_size, y // chunk_size
+                    lx, ly = x % chunk_size, y % chunk_size
+                    key = (cx, cy)
+                    if key not in chunk_surfs:
+                        tx0 = cx * chunk_size
+                        ty0 = cy * chunk_size
+                        w_px = (min(tx0 + chunk_size, map_w) - tx0) * tw
+                        h_px = (min(ty0 + chunk_size, map_h) - ty0) * th
+                        chunk_surfs[key] = pygame.Surface((w_px, h_px), pygame.SRCALPHA)
+                    chunk_surfs[key].blit(tile, (lx * tw, ly * th))
+
+            for (cx, cy), surf in chunk_surfs.items():
+                tx0 = cx * chunk_size
+                ty0 = cy * chunk_size
+                if scale != 1:
+                    w_px, h_px = surf.get_size()
+                    surf = pygame.transform.scale(surf, (w_px * scale, h_px * scale))
+                # offset in unscaled pixels; Graphic.__init__ applies scale
+                g = components.Graphic(self, None, offset=(tx0 * tw, ty0 * th))
+                g.image = surf
+                g.rect  = surf.get_rect()
+                g.add(group)
+            return len(chunk_surfs), tile_count
+
+        bg_chunks, bg_tiles = _build_chunks(bg_layers, back_group)
+        fg_chunks, fg_tiles = _build_chunks(fg_layers, front_group)
+        DebugLogger.log(
+            "TileMap '%s' baked: map=%dx%d tiles tile_px=%dx%d scale=%d chunk_size=%d | "
+            "bg: %d layers %d chunks %d tiles | fg: %d layers %d chunks %d tiles",
+            self.name, map_w, map_h, tw, th, scale, chunk_size,
+            len(bg_layers), bg_chunks, bg_tiles,
+            len(fg_layers), fg_chunks, fg_tiles
+        )
+
+
+class LightObject(abstract.Object):
+    """Fuente de luz estática colocada desde Tiled (type='Light').
+    Propiedades Tiled: atlas (str), offset_x (int), offset_y (int).
+    """
+    def __init__(self, pos=(0, 0), light_group=None,
+                 atlas="light1", **kwargs):
+        super().__init__("light_object", pos)
+        self.light = components.Graphic(
+            self, ResourceManager.getAtlas(atlas),
+            offset=(-128, -128), primary=False
+        )
+        if light_group:
+            self.light.add(light_group)
+        self.light.addState("on", [0])
+        self.light.setState("on")
+
+    def update(self, dt):
+        self.light.update(dt)
+
+    def serialize(self):
+        return {}
+
+
+class TextButton(abstract.Object):
+    """
+    Boton de texto para menus.
+    - x, y, font_size en unidades BASE. Scale se aplica internamente.
+    - Para animar: asigna un atlas y usa addState/setState en self.graphic.
+    """
+    def __init__(self, label: str, x: int, y: int,
+                 font_size: int = 8,
+                 font_name: str = "CaskaydiaCoveNerdFont-Regular.ttf"):
+        super().__init__("text_button", (x, y))
+        s    = ResourceManager.getConfig().getint("video", "scale")
+        font = ResourceManager.getFont(font_name, font_size * s)
+        surf = font.render(label, False, (80, 80, 80))
+        surf.set_colorkey(surf.get_at((0, 0)))
+        self.graphic       = components.Graphic(self, None)
+        self.graphic.image = surf
+        self.graphic.rect  = surf.get_rect(topleft=self.pos.topleft)
+        self._clicked      = False
+
+    def update(self, dt) -> bool:
+        self.graphic.update(dt)
+        pressed = pygame.mouse.get_pressed()[0]
+        if self.graphic.rect.collidepoint(pygame.mouse.get_pos()):
+            if pressed and not self._clicked:
+                self._clicked = True
+                return True
+        if not pressed:
+            self._clicked = False
+        return False
+
+    def events(self, events):   pass
+    def draw(self):             pass
+    def serialize(self):        return {}
+    def unserialize(self, d):   pass
+
+
+class TextInput(abstract.Object):
+    """
+    Campo de texto editable.
+    - Llama handle_event(event) desde Scene.events().
+    - x, y, font_size en unidades BASE.
+    """
+    BLINK_MS = 500
+
+    def __init__(self, initial: str, x: int, y: int,
+                 font_size: int = 8, max_chars: int = 10,
+                 font_name: str = "CaskaydiaCoveNerdFont-Regular.ttf"):
+        super().__init__("text_input", (x, y))
+        s            = ResourceManager.getConfig().getint("video", "scale")
+        self._font   = ResourceManager.getFont(font_name, font_size * s)
+        self._max    = max_chars
+        self._active = False
+        self._blink  = 0
+        self._show   = True
+        self.value   = initial
+        self.graphic = components.Graphic(self, None)
+        self._render()
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            self._active = self.graphic.rect.collidepoint(event.pos)
+        if not self._active:
+            return
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE:
+                self.value = self.value[:-1]
+            elif event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+                self._active = False
+            elif len(self.value) < self._max and event.unicode.isprintable():
+                self.value += event.unicode
+            self._render()
+
+    def update(self, dt):
+        self.graphic.update(dt)
+        self._blink += dt
+        if self._blink >= self.BLINK_MS:
+            self._blink = 0
+            self._show  = not self._show
+            self._render()
+
+    def _render(self):
+        display = (self.value + "|") if self._active and self._show else self.value
+        if not display:
+            display = " "
+        color = (40, 40, 40) if self._active else (120, 120, 120)
+        surf  = self._font.render(display, False, color)
+        surf.set_colorkey(surf.get_at((0, 0)))
+        self.graphic.image = surf
+        self.graphic.rect  = surf.get_rect(topleft=self.pos.topleft)
+
+    def events(self, events):   pass
+    def draw(self):             pass
+    def serialize(self):        return {"value": self.value}
+    def unserialize(self, d):   self.value = d["value"]; self._render()
+
+
+class Portal(abstract.Object):
+    def __init__(self, pos, size=(32,32), name=None, **kwargs):
+        super().__init__("portal", pos)
+
+        scale = ResourceManager.getConfig().getint("video", "scale")
+        self.pos.size = (size[0]*scale, size[1]*scale)
+
+        self.name = name
+        self.target_name = kwargs.get("target", "").replace('"','').strip()
+        self.cooldown = 0
+
+    def update(self, dt, player_pos):
+        if self.cooldown > 0:
+            self.cooldown -= dt
+        return None
+
+    def teleport_player(self, player, all_objects):
+
+     if not self.target_name:
+        return
+
+     target_obj = all_objects.get(self.target_name)
+
+     if target_obj:
+
+        print("TELEPORTANDO A:", self.target_name)
+
+        player.pos.center = target_obj.pos.center
+        player.pos.y += target_obj.pos.h + 10
+
+        if hasattr(player, "movement"):
+            player.movement._x = float(player.pos.x)
+            player.movement._y = float(player.pos.y)

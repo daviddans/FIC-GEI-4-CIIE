@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
 import pygame
+from resourceManager import ResourceManager
+from debugLogger import DebugLogger
 
-class Scene: 
+class Scene:
     def __init__(self, game, name="unamed"):
         self.game = game
         self.name = name
         self.objects = []
+        DebugLogger.log("\n---Scene init: '%s'---\n", name)
     
     def addObject(self, obj):
         self.objects.append(obj)
@@ -27,8 +30,9 @@ class Scene:
 
 class Object:
     def __init__(self, name="unamed", pos = (0,0)):
+        scale = ResourceManager().getConfig().getint("video", "scale")
         self.name = name
-        self.pos = pygame.rect.Rect(pos, (0,0))
+        self.pos = pygame.rect.Rect((pos[0] * scale , pos[1] * scale), (0,0))
   
     def update(self, dt):
         raise NotImplementedError("Object: " + self.name + ". Update method not found, must be given an implementation.\n")
@@ -36,8 +40,16 @@ class Object:
     def events(self, events):
         raise NotImplementedError("Object: " + self.name + ". Events method not found, must be given an implementation.\n")
     
-    def draw(self):
-        raise NotImplementedError("Object: " + self.name + ". Draw method not found, must be given an implementation.\n")
+    def on_collision(self, subject):
+        raise NotImplementedError(f"Object:  {self.name} . on_collision method not found, must be given an implementation. Collided with: {subject.names}\n")
+    
+    #para que las entidades guarden sus datos para el json de fase
+    def serialize(self):
+        raise NotImplementedError("Object: " + self.name + ". Serialize method not found, must be given an implementation.\n")
+    #para recuperar los datos guardados
+    def unserialize(self, data):
+        raise NotImplementedError("Object: " + self.name + ". Serialize method not found, must be given an implementation.\n")
+    
 
 class Observer(ABC):
     # Cualquier objeto que reacciona a algo (puertas)
@@ -54,5 +66,12 @@ class Observable:
         self.observers.append(observer)
 
     def notify(self, entity, event):
+        DebugLogger.log("Observable notify: entity='%s' event='%s' observers=%d",
+                        getattr(entity, "name", repr(entity)), event, len(self.observers))
         for observer in self.observers:
             observer.on_notify(entity, event)
+
+class Behavior(ABC):
+    @abstractmethod
+    def update(self, npc, dt):
+        pass
