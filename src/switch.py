@@ -1,8 +1,17 @@
+import os
+
 import abstract
 from resourceManager import ResourceManager
 import components
 import pygame
 from debugLogger import DebugLogger
+from dialog import Dialog, load_dialogs_from_csv
+
+
+
+def load_dialogs_from_csv(param, key_column):
+    pass
+
 
 class Switch(abstract.Object, abstract.Observable):
     def __init__(self, pos, name="switch", graphic_group=None, light_group=None, **kwargs):
@@ -23,6 +32,17 @@ class Switch(abstract.Object, abstract.Observable):
         else:
             self.graphic.setState("switch-off")
         DebugLogger.log("Switch init: name=%s pos=%s is_pressed=%s", name, pos, self.is_pressed)
+
+        # ── Diálogos propios del Switch ───────
+        _base = ResourceManager.getConfig().get("PATH", "assets_path")
+        self.dialogs = load_dialogs_from_csv(
+            os.path.join(_base, "dialogs", "switches.csv"),
+            key_column="event"
+        )
+
+    def get_dialog(self, event: str) -> list[Dialog]:
+        #La escena llama a esto para obtener las líneas del diálogo.
+        return self.dialogs.get(event, [])
 
 
     def on_collision(self, _other):
