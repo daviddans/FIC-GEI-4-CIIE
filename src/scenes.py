@@ -148,6 +148,10 @@ class TestScene(abstract.Scene):
         room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
         temp = {}
         for obj in self.map.tmx.objects:
+            if not obj.type:
+                DebugLogger.log("WARN: objeto sin tipo ignorado: name='%s' pos=(%g,%g)",
+                                obj.name or str(obj.id), obj.x, obj.y)
+                continue
             obj_type = obj.type.strip()
             if obj_type == "Room":
                 rect = pygame.Rect(obj.x * scale, obj.y * scale,
