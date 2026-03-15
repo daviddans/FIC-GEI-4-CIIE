@@ -5,6 +5,7 @@ from saveManager import SaveManager
 from switch import Switch
 from door import Door
 from objects import LightObject
+from portal import Portal
 
 from shadow import Shadow
 from components import ChasePlayer, Health
@@ -22,18 +23,19 @@ class TestScene(abstract.Scene):
             "entities":  pygame.sprite.LayeredUpdates(),  # todas las entidades, Y-sorted por layer
             "map_front": pygame.sprite.Group(),           # capas Z > 0  (techos, cubiertas)
             "lights":    pygame.sprite.Group(),           # todas las luces
+            "triggers":  pygame.sprite.Group(),           # triggers invisibles (portales, etc.)
             "hud":       pygame.sprite.Group(),           # HUD y efectos de pantalla
         }
-        self.room_groups = [] # lista de listas: sub-rects agrupados por nombre (para _active_rooms)
-        self.room_data   = [] # lista de (bbox_world, mask_surface) pre-computados por room
+        self.rooms = []  # lista de (bbox, mask, rects)
+        self._colliding_triggers = set()  # ids de triggers actualmente en contacto con player
         self.player = None
         self.light_screen = self.game.screen.copy()
-        self.map    = objects.tileMap("TestMap",
+        self.map    = objects.tileMap("lvl1_tutorial",
                                       back_group=self.groups["map_back"],
                                       front_group=self.groups["map_front"])
         self.camera = objects.Camera()
         # Solo registrar grupos del mundo (HUD no se mueve con la cámara)
-        for name in ("map_back", "entities", "map_front", "lights"):
+        for name in ("map_back", "entities", "map_front", "lights", "triggers"):
             self.camera.addGroup(self.groups[name])
         self._load_from_tiled()
         if self.player:
@@ -53,22 +55,42 @@ class TestScene(abstract.Scene):
 
     def _active_rooms(self):
         """Rooms (world-space) que se solapan con el viewport de la cámara."""
-        return [rect for rects in self.room_groups for rect in rects
-                if rect.colliderect(self.camera.pos)]
+        return [room for room in self.rooms if room[0].colliderect(self.camera.pos)]
 
     def update(self, dt):
         if not self.player:
             return
 
-        # 1. Player siempre se actualiza
-        self.player.update(dt, map=self.map.reachable)
+        # 1. Portal state
+        active_portal = next(
+            (s.parent for s in self.groups["triggers"] if s.parent.is_active), None)
+
+        if active_portal is None:
+            self.player.update(dt, map=self.map.reachable)
+            # Colisión world-space: player.pos ↔ trigger.parent.pos
+            new_colliding = set()
+            for sprite in self.groups["triggers"]:
+                obj = sprite.parent
+                obj_id = id(obj)
+                if self.player.pos.colliderect(obj.pos):
+                    new_colliding.add(obj_id)
+                    if obj_id not in self._colliding_triggers:
+                        DebugLogger.log("Collision ENTER: player%s -> '%s'%s",
+                                        self.player.pos, getattr(obj, "name", "?"), obj.pos)
+                        obj.on_notify(self.player, "collision_enter")
+                elif obj_id in self._colliding_triggers:
+                    DebugLogger.log("Collision EXIT: player -> '%s'", getattr(obj, "name", "?"))
+                    obj.on_notify(self.player, "collision_exit")
+            self._colliding_triggers = new_colliding
+        else:
+            active_portal.update(dt, self.player)
 
         # 2. Filtrar entidades activas en rooms visibles (spritecollide C-level)
         updated = {id(self.player)}
         cam = self.camera.pos
-        for room in self._active_rooms():
+        for bbox, mask, rects in self._active_rooms():
             room_sprite = pygame.sprite.Sprite()
-            room_sprite.rect = room.move(-cam.x, -cam.y)
+            room_sprite.rect = bbox.move(-cam.x, -cam.y)
             for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
                 ent = sprite.parent
                 ent_id = id(ent)
@@ -125,9 +147,13 @@ class TestScene(abstract.Scene):
         if hasattr(self, 'health_hud'):
             self.health_hud.draw(self.game.screen)
 
+        # 6. Triggers (fade overlay si algún portal está activo)
+        for sprite in self.groups["triggers"]:
+            sprite.parent.draw(self.game.screen)
+
     def _room_clip_for(self, world_pos):
         """Devuelve (bbox_world, mask_surface) del room que contiene world_pos, o (None, None)."""
-        for (bbox, mask), rects in zip(self.room_data, self.room_groups):
+        for bbox, mask, rects in self.rooms:
             for rect in rects:
                 if rect.collidepoint(world_pos.center):
                     return bbox, mask
@@ -138,6 +164,7 @@ class TestScene(abstract.Scene):
         entity_classes = {
             "Switch": Switch, "Door": Door,
             "Player": player.Player, "Shadow": Shadow,
+            "Portal": Portal,
         }
         room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
         temp = {}
@@ -159,19 +186,23 @@ class TestScene(abstract.Scene):
             cls = entity_classes.get(obj_type)
             if not cls:
                 continue
-            ent = cls(pos=(obj.x, obj.y), graphic_group=self.groups["entities"], light_group=self.groups["lights"], **obj.properties)
+            ent = cls(pos=(obj.x, obj.y),
+                      graphic_group=self.groups["entities"],
+                      light_group=self.groups["lights"],
+                      trigger_group=self.groups["triggers"],
+                      width=obj.width, height=obj.height,
+                      **obj.properties)
             temp[obj.name or str(obj.id)] = ent
             if obj_type == "Player":
                 self.player = ent
         # Registrar rooms y pre-computar máscara por room (una sola vez)
         for name, rects in room_buckets.items():
-            self.room_groups.append(rects)
             bbox = rects[0].unionall(rects[1:])
             mask = pygame.Surface(bbox.size, pygame.SRCALPHA)
             mask.fill((0, 0, 0, 0))
             for r in rects:
                 mask.fill((255, 255, 255, 255), r.move(-bbox.x, -bbox.y))
-            self.room_data.append((bbox, mask))
+            self.rooms.append((bbox, mask, rects))
             DebugLogger.log("Room final: '%s' %d parte(s) -> %s",
                             name, len(rects), [str(r) for r in rects])
         for ent in temp.values():

@@ -115,7 +115,7 @@ class tileMap(abstract.Object):
                     w_px, h_px = surf.get_size()
                     surf = pygame.transform.scale(surf, (w_px * scale, h_px * scale))
                 # offset in unscaled pixels; Graphic.__init__ applies scale
-                g = components.Graphic(self, None, offset=(tx0 * tw, ty0 * th))
+                g = components.Graphic(self, None, offset=(tx0 * tw, ty0 * th)) #Overrided graphic component
                 g.image = surf
                 g.rect  = surf.get_rect()
                 g.add(group)

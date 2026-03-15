@@ -117,6 +117,7 @@ class Graphic(pygame.sprite.Sprite):
     def cameraUpdate(self, pos):
         self._camera_pos = pos
 
+
 class Input():
     def __init__(self,parent:abstract.Object):
         self.parent = parent

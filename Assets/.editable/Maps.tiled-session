@@ -1,0 +1,91 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "": {
+            "scaleInDock": 1
+        },
+        "#tilemapLab01": {
+            "scaleInDock": 1
+        },
+        "/home/dansv/Documents/Fic4/CIIE/FIC-GEI-4-CIIE/Assets/maps/TestGigante.tmx": {
+            "expandedObjectLayers": [
+                6
+            ],
+            "scale": 1.9832,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 345.4013715207745,
+                "y": 474.9899152884227
+            }
+        },
+        "/home/dansv/Documents/Fic4/CIIE/FIC-GEI-4-CIIE/Assets/maps/TestGigante.tmx#tilemapLab01": {
+            "scaleInDock": 1
+        },
+        "/home/dansv/Documents/Fic4/CIIE/FIC-GEI-4-CIIE/Assets/maps/TestMap.tmx": {
+            "expandedObjectLayers": [
+                7
+            ],
+            "scale": 1.867,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 129.61971076593466,
+                "y": 147.29512587038028
+            }
+        },
+        "/home/dansv/Documents/Fic4/CIIE/FIC-GEI-4-CIIE/Assets/maps/TestMap.tmx#tilemapLab01": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "TestMap.tmx": {
+            "scale": 1.7090104166666666,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 429.1957455886387,
+                "y": 299.5885776978637
+            }
+        },
+        "TestMap.tmx#tilemapLab01": {
+            "scaleInDock": 1
+        },
+        "untitled.tmx": {
+            "scale": 1.7090104166666666,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 429.1957455886387,
+                "y": 299.5885776978637
+            }
+        },
+        "untitled.tmx#tilemapLab01": {
+            "scaleInDock": 1
+        }
+    },
+    "last.imagePath": "/home/dansv/Documents/Fic4/CIIE/FIC-GEI-4-CIIE/Assets/maps",
+    "map.height": 500,
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 16,
+    "map.tileWidth": 16,
+    "map.width": 500,
+    "openFiles": [
+        "/home/dansv/Documents/Fic4/CIIE/FIC-GEI-4-CIIE/Assets/maps/TestMap.tmx"
+    ],
+    "project": "Maps.tiled-project",
+    "property.type": "string",
+    "recentFiles": [
+        "/home/dansv/Documents/Fic4/CIIE/FIC-GEI-4-CIIE/Assets/maps/TestMap.tmx",
+        "TestMap.tmx",
+        "untitled.tmx"
+    ],
+    "tileset.embedInMap": true,
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
+}

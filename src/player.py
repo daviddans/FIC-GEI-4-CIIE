@@ -8,7 +8,7 @@ from resourceManager import ResourceManager
 from debugLogger import DebugLogger
 
 class Player(abstract.Object):
-    def __init__(self, pos=(0,0), speed=0.1, graphic_group=None, light_group=None):
+    def __init__(self, pos=(0,0), speed=0.1, graphic_group=None, light_group=None, **kwargs):
         super().__init__("player", pos) 
         self.atlas = ResourceManager.getAtlas("player-base")
         self.graphic_group = graphic_group
