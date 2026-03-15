@@ -5,7 +5,7 @@ from saveManager import SaveManager
 from switch import Switch
 from door import Door
 from objects import LightObject, Portal
-
+from key import Key
 from shadow import Shadow
 from components import ChasePlayer, Health
 from healthHUD import HealthHUD
@@ -71,13 +71,17 @@ class TestScene(abstract.Scene):
             room_sprite.rect = room.move(-cam.x, -cam.y)
             #Actualizar entidades
             for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
+                print("  SPRITE RECT:", sprite.rect, "parent:", type(sprite.parent).__name__)
                 ent = sprite.parent
                 ent_id = id(ent)
                 if ent_id not in updated:
                     updated.add(ent_id)
                     if ent.pos.colliderect(self.player.pos):
                         ent.on_collision(self.player)
-                    ent.update(dt)
+                    if isinstance(ent, Key):
+                     ent.update(dt, self.player.pos.topleft)
+                    else:
+                     ent.update(dt)
 
         # 3. Update gráfico de todos los sprites (posición, animación, Y-sort)
         for g in self.groups.values():
@@ -143,7 +147,8 @@ class TestScene(abstract.Scene):
             "Switch": Switch, "Door": Door,
             "Player": player.Player, "Shadow": Shadow,
             "Portal": Portal,
-            "Light": LightObject
+            "Light": LightObject,
+            "Key": Key
         }
         room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
         temp = {}
@@ -153,6 +158,7 @@ class TestScene(abstract.Scene):
                                 obj.name or str(obj.id), obj.x, obj.y)
                 continue
             obj_type = obj.type.strip()
+            print("OBJ:", obj.name, obj.type)
             if obj_type == "Room":
                 rect = pygame.Rect(obj.x * scale, obj.y * scale,
                                    obj.width * scale, obj.height * scale)
@@ -198,6 +204,8 @@ class TestScene(abstract.Scene):
         for ent in temp.values():
             if hasattr(ent, "resolve_target"):
                 ent.resolve_target(temp)
+            if isinstance(ent, Key):
+             ent.player = self.player
             if not hasattr(ent, "target") or not ent.target:
                 continue
             names = str(ent.target).split(",")
