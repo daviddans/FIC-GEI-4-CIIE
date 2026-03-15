@@ -2,6 +2,8 @@ import pygame
 import abstract
 import csv
 
+from resourceManager import ResourceManager
+
 
 class Dialog:
     def __init__(self, name, text):
@@ -70,9 +72,10 @@ class DialogScene(abstract.Scene):
         super().__init__(game, name)
         self.dialog_manager = dialog_manager
         self.parent_scene = game.sceneStack[-1] if game.sceneStack else None
-        self.font_name = pygame.font.SysFont("Arial", 20, bold=True)
-        self.font_text = pygame.font.SysFont("Arial", 16)
-        self.font_hint = pygame.font.SysFont("Arial", 16)
+        scale = ResourceManager.getConfig().getint("video", "scale")
+        self.font_name = pygame.font.SysFont("Arial", 4 * scale, bold=True)
+        self.font_text = pygame.font.SysFont("Arial", 4 * scale)
+        self.font_hint = pygame.font.SysFont("Arial", 3 * scale)
         self.padding = 20
 
         self._visible_chars = 0
