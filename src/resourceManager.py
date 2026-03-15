@@ -2,7 +2,6 @@ from configparser import ConfigParser
 import pygame
 import os
 import json
-from configparser import ConfigParser
 from pytmx.util_pygame import load_pygame
 
 class ResourceManager:
@@ -94,7 +93,7 @@ class ResourceManager:
             raise e
     
     @classmethod
-    def clear_cahce(cls):
+    def clear_cache(cls):
         try:
             cls._resources.clear()
         except Exception as e :
@@ -104,14 +103,13 @@ class ResourceManager:
     def _read_TileMap(name):
         base_path = ResourceManager.getConfig().get("PATH", "maps_path")
         full_path = os.path.join(base_path, name +".tmx")
-        if os.path.exists(full_path):
-            try:
-                tmx_data = load_pygame(full_path)
-                return tmx_data
-            except Exception as e:
-                print(f"Error loading tilemap '{full_path}': {e}")
-                raise e
-        return tmx_data
+        if not os.path.exists(full_path):
+            raise FileNotFoundError(f"No se encontró el tilemap: {full_path}")
+        try:
+            return load_pygame(full_path)
+        except Exception as e:
+            print(f"Error loading tilemap '{full_path}': {e}")
+            raise e
     
     #Cargar de disco archivos que componen un atlas.
     def _read_Atlas(name):
@@ -131,7 +129,8 @@ class ResourceManager:
         if image is None:
             raise FileNotFoundError(f"No se encontró el archivo de imagen para el atlas {name}")
         try:
-            cood = json.load(open(full_path + ".json", "r"))
+            with open(full_path + ".json", "r") as f:
+                cood = json.load(f)
         except Exception as e:
             print(f"Error loading coordinates for atlas '{full_path}': {e}")
             raise e

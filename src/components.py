@@ -49,7 +49,7 @@ primary es un fix pocho, para que un objeto pueda generar varios sprites pero no
 
 
 class Graphic(pygame.sprite.Sprite):
-    def __init__(self, parent:abstract.Object, atlas:Atlas, offset= (0, 0), primary=True):
+    def __init__(self, parent:abstract.Object, atlas:Atlas, offset= (0, 0), primary=True, name="Graphic"):
         super().__init__()
         self.image = None
         self.rect = None
@@ -63,8 +63,8 @@ class Graphic(pygame.sprite.Sprite):
         self._offset = (offset[0] * scale, offset[1] * scale)
         self._camera_pos = (0,0)
         self.primary = primary
-        DebugLogger.log("Graphic init: parent='%s' offset=%s primary=%s",
-                        getattr(parent, "name", "?"), self._offset, primary)
+        DebugLogger.log("Graphic: '%s' init: parent='%s' offset=%s primary=%s",
+                        name, getattr(parent, "name", "?"), self._offset, primary)
         
     def addState(self, name, ids:list[int]):
         if len(ids) <= 0 :
@@ -93,7 +93,6 @@ class Graphic(pygame.sprite.Sprite):
         last_frame = None # Devuelve None si no es animacion
         #Actualizar frame si es animacion
         if self.animate :
-            self.time_elapsed = 0
             last_frame = False
             self.image = self._atlas.getSprite(self._states[self.current_state][self._current_frame])
             self.rect = self.image.get_rect() 
@@ -197,7 +196,6 @@ class Movement():
         self._x = new_x
         self._y = new_y
         self.parent.pos.topleft = (int(self._x), int(self._y))
-        #print(f"move target to: {self.parent.pos.topleft}")
 
     #Comprobar si es una posicion alcanzable en una matriz de mapa
     def reachable(self, x_pixel, y_pixel, matrix):
@@ -205,7 +203,6 @@ class Movement():
             return True
         grid_x = int(x_pixel // (self._tile_size * self._scale))
         grid_y = int(y_pixel // (self._tile_size * self._scale))
-        #print(f"Grid reachability tested:({grid_x}, {grid_y})")
         if 0 <= grid_x < len(matrix[0]) and 0 <= grid_y < len(matrix):
             return matrix[grid_y][grid_x]
         return False

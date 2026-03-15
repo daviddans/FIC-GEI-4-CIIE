@@ -63,25 +63,21 @@ class TestScene(abstract.Scene):
         # 1. Player siempre se actualiza
         self.player.update(dt, map=self.map.reachable)
 
-        all_entities = self.entities_dict
-
         # 2. Filtrar entidades activas en rooms visibles (spritecollide C-level)
         updated = {id(self.player)}
         cam = self.camera.pos
         for room in self._active_rooms():
             room_sprite = pygame.sprite.Sprite()
             room_sprite.rect = room.move(-cam.x, -cam.y)
+            #Actualizar entidades
             for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
                 ent = sprite.parent
                 ent_id = id(ent)
                 if ent_id not in updated:
                     updated.add(ent_id)
-                    ent.update(dt, self.player.pos.topleft)
-                for portal in self.portals:
-                 if portal.pos.collidepoint(self.player.pos.center):
-                  portal.teleport_player(self.player, all_entities)
-                  print("Portal rect:", portal.pos)
-                  print("Player:", self.player.pos.center)
+                    if ent.pos.colliderect(self.player.pos):
+                        ent.on_collision(self.player)
+                    ent.update(dt)
 
         # 3. Update gráfico de todos los sprites (posición, animación, Y-sort)
         for g in self.groups.values():
@@ -91,6 +87,7 @@ class TestScene(abstract.Scene):
         if self.player.health.is_dead:
             self.game.switchScene(GameOverScene(self.game))
             return
+        
         self.camera.update(dt)
 
     def draw(self):
@@ -145,9 +142,9 @@ class TestScene(abstract.Scene):
         entity_classes = {
             "Switch": Switch, "Door": Door,
             "Player": player.Player, "Shadow": Shadow,
-            "Portal": Portal
+            "Portal": Portal,
+            "Light": LightObject
         }
-        self.portals = []
         room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
         temp = {}
         for obj in self.map.tmx.objects:
@@ -160,33 +157,27 @@ class TestScene(abstract.Scene):
                 DebugLogger.log("Room leida: '%s' tiled=(%g,%g %gx%g) scaled=%s",
                                 key, obj.x, obj.y, obj.width, obj.height, rect)
                 continue
+            entity_name = (obj.name or str(obj.id)).strip()
             if obj_type == "Light":
                 LightObject(pos=(obj.x, obj.y),
+                            name=entity_name,
                             light_group=self.groups["lights"],
                             **obj.properties)
                 continue
             cls = entity_classes.get(obj_type)
             if not cls:
                 continue
-            if obj_type == "Portal":
-             ent = cls(
-             pos=(obj.x, obj.y),
-             size=(obj.width, obj.height),
-             name=obj.name,
-             graphic_group=self.groups["entities"],
-             light_group=self.groups["lights"],
-             **obj.properties)
-             self.portals.append(ent)
-            else:
-             ent = cls(
-             pos=(obj.x, obj.y),
-             graphic_group=self.groups["entities"],
-             light_group=self.groups["lights"],
-             **obj.properties)
-
-            temp[(obj.name or str(obj.id)).strip()] = ent
+            ent = cls(
+                pos=(obj.x, obj.y),
+                size=(obj.width, obj.height),
+                name=entity_name,
+                graphic_group=self.groups["entities"],
+                light_group=self.groups["lights"],
+                **obj.properties)
+            temp[entity_name] = ent
             if obj_type == "Player":
                 self.player = ent
+
         # Registrar rooms y pre-computar máscara por room (una sola vez)
         for name, rects in room_buckets.items():
             self.room_groups.append(rects)
@@ -198,7 +189,11 @@ class TestScene(abstract.Scene):
             self.room_data.append((bbox, mask))
             DebugLogger.log("Room final: '%s' %d parte(s) -> %s",
                             name, len(rects), [str(r) for r in rects])
+
+        # Enlazar observadores y resolver targets (una sola pasada)
         for ent in temp.values():
+            if hasattr(ent, "resolve_target"):
+                ent.resolve_target(temp)
             if not hasattr(ent, "target") or not ent.target:
                 continue
             names = str(ent.target).split(",")
@@ -210,7 +205,6 @@ class TestScene(abstract.Scene):
                     ent.target_objects.append(r)
                     if len(names) == 1:
                         ent.target = r
-        self.entities_dict = temp
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -247,13 +241,7 @@ class MainMenu(abstract.Scene):
 #   1. Crear clase que herede _SettingsTab
 #   2. Añadir instancia a self.TABS en SettingsScene.__init__
 # ─────────────────────────────────────────────────────────────────────
-class _SettingsTab:
-    def update(self, dt):          pass
-    def events(self, events):      pass
-    def draw(self, screen, s, font): pass
-
-
-class _VideoTab(_SettingsTab):
+class _VideoTab:
     RESOLUTIONS = [(1920, 1080), (2560, 1440)]  # añade resoluciones aquí
     FPS_OPTIONS = [30, 60, 120, 144,  240, 360, 500, 1000]
 
@@ -263,6 +251,8 @@ class _VideoTab(_SettingsTab):
     _BX  = 120   # x botón <
     _BX2 = 130  # x botón >
     _Y   = [60, 80, 100]   # y de cada fila: resolución, fullscreen, fps
+
+    def events(self, events): pass
 
     def __init__(self):
         cfg = ResourceManager.getConfig()
@@ -301,7 +291,7 @@ class _VideoTab(_SettingsTab):
         if self.fps_next.update(dt): self._fps_i = (self._fps_i + 1) % len(self.FPS_OPTIONS)
 
     def draw(self, screen, s, font):
-        rows = [
+        rows = [             
             ("Resolucion", self._Y[0], f"{self.resolution[0]}x{self.resolution[1]}"),
             ("Fullscreen", self._Y[1], "On" if self._fs else "Off"),
             ("FPS max",    self._Y[2], str(self.maxfps)),

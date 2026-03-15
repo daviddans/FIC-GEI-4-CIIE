@@ -5,49 +5,35 @@ import pygame
 from debugLogger import DebugLogger
 
 class Switch(abstract.Object, abstract.Observable):
-    def __init__(self, pos, graphic_group=None, light_group=None, **kwargs):
-        graphic_group = graphic_group 
-        light_group = light_group 
-        abstract.Object.__init__(self, "switch", pos)
+    def __init__(self, pos, name="switch", graphic_group=None, light_group=None, **kwargs):
+        abstract.Object.__init__(self, name, pos)
         abstract.Observable.__init__(self)
-        self.is_pressed = kwargs.get("is_pressed", "False")
-        self.interact_range = kwargs.get("interact_range", "50")
+        self.is_pressed = kwargs.get("is_pressed", "false").lower() == "true"
         self.target = kwargs.get("target_object", None)
         self.already_pressed = False
         self.atlas = ResourceManager.getAtlas("interruptor")
         self.graphic = components.Graphic(self, self.atlas)
-        
         self.graphic.add(graphic_group)
-        
-        self.graphic.addState("switch-off", [0]) 
+        self.graphic.addState("switch-off", [0])
         self.graphic.addState("switch-on", [1])
-        self.graphic.setState("switch-off") 
-        self.interact_range = 50
-        
+        self.graphic.setState("switch-off")
+
         if self.is_pressed:
             self.graphic.setState("switch-on")
         else:
             self.graphic.setState("switch-off")
-        DebugLogger.log("Switch init: pos=%s is_pressed=%s interact_range=%s",
-                        pos, self.is_pressed, self.interact_range)
+        DebugLogger.log("Switch init: name=%s pos=%s is_pressed=%s", name, pos, self.is_pressed)
 
 
-    def update(self, dt, player_pos):
-        self.graphic.update(dt)
-        
-        p_vec = pygame.Vector2(player_pos)
-        s_vec = pygame.Vector2(self.pos.topleft)
-        distance = s_vec.distance_to(p_vec)
+    def on_collision(self, _other):
+        if pygame.key.get_pressed()[pygame.K_e] and not self.already_pressed:
+            self.toggle()
+            self.already_pressed = True
 
-        keys = pygame.key.get_pressed()
-        
-        # de momento se pulsa una tecla para encenderlo hasta que se implemente la luz (que es lo que debería activar el interruptor) 
-        if distance < self.interact_range and keys[pygame.K_e]:
-            if not self.already_pressed:
-                self.toggle() 
-                self.already_pressed = True 
-        else:
+    def update(self, dt):
+        if not pygame.key.get_pressed()[pygame.K_e]:
             self.already_pressed = False
+        self.graphic.update(dt)
 
     def toggle(self):
         self.is_pressed = not self.is_pressed
