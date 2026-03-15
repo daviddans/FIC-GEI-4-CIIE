@@ -25,8 +25,9 @@ class GameScene(abstract.Scene):
             "lights":    pygame.sprite.Group(),           # todas las luces
             "hud":       pygame.sprite.Group(),           # HUD y efectos de pantalla
         }
-        self.room_groups = [] # lista de listas: sub-rects agrupados por nombre (para _active_rooms)
-        self.room_data   = [] # lista de (bbox_world, mask_surface) pre-computados por room
+        self.room_groups     = [] # lista de listas: sub-rects agrupados por nombre (para _active_rooms)
+        self.room_data       = [] # lista de (bbox_world, mask_surface) pre-computados por room
+        self.room_luminosity = [] # luminosidad ambiental 0-255 por room group
         self.player = None
         self.light_screen = self.game.screen.copy()
         self.map    = objects.tileMap(map,
@@ -56,6 +57,15 @@ class GameScene(abstract.Scene):
         """Rooms (world-space) que se solapan con el viewport de la cámara."""
         return [rect for rects in self.room_groups for rect in rects
                 if rect.colliderect(self.camera.pos)]
+
+    def _active_luminosity(self):
+        """Media de luminosidad (0-255) de las rooms activas."""
+        active = [
+            self.room_luminosity[i]
+            for i, rects in enumerate(self.room_groups)
+            if any(r.colliderect(self.camera.pos) for r in rects)
+        ]
+        return int(sum(active) / len(active)) if active else 25
 
     def update(self, dt):
         if not self.player:
@@ -112,7 +122,8 @@ class GameScene(abstract.Scene):
                 self.game.screen.blit(sprite.image, sprite.rect)
 
         # 4. Luces: clipeadas a la forma real del room + BLEND_MULT
-        self.light_screen.fill("grey10")
+        lum = self._active_luminosity()
+        self.light_screen.fill((lum, lum, lum))
         cam = self.camera.pos
         for sprite in self.groups["lights"].sprites():
             bbox_world, mask = self._room_clip_for(sprite.parent.pos)
@@ -150,7 +161,8 @@ class GameScene(abstract.Scene):
             "Light": LightObject,
             "Key": Key
         }
-        room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
+        room_buckets            = {}  # nombre -> [Rect, ...], para merge posterior
+        room_luminosity_buckets = {}  # nombre -> int (0-255)
         temp = {}
         for obj in self.map.tmx.objects:
             if not obj.type:
@@ -163,8 +175,11 @@ class GameScene(abstract.Scene):
                                    obj.width * scale, obj.height * scale)
                 key = obj.name.strip() if obj.name else str(obj.id)
                 room_buckets.setdefault(key, []).append(rect)
-                DebugLogger.log("Room leida: '%s' tiled=(%g,%g %gx%g) scaled=%s",
-                                key, obj.x, obj.y, obj.width, obj.height, rect)
+                props_lower = {k.lower(): v for k, v in (obj.properties or {}).items()}
+                room_luminosity_buckets[key] = int(props_lower.get("luminosity", 25))
+                DebugLogger.log("Room leida: '%s' tiled=(%g,%g %gx%g) scaled=%s luminosity=%d",
+                                key, obj.x, obj.y, obj.width, obj.height, rect,
+                                room_luminosity_buckets[key])
                 continue
             entity_name = (obj.name or str(obj.id)).strip()
             if obj_type == "Light":
@@ -190,6 +205,7 @@ class GameScene(abstract.Scene):
         # Registrar rooms y pre-computar máscara por room (una sola vez)
         for name, rects in room_buckets.items():
             self.room_groups.append(rects)
+            self.room_luminosity.append(room_luminosity_buckets.get(name, 25))
             bbox = rects[0].unionall(rects[1:])
             mask = pygame.Surface(bbox.size, pygame.SRCALPHA)
             mask.fill((0, 0, 0, 0))

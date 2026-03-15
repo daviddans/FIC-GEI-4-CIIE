@@ -1812,11 +1812,6 @@
  <objectgroup id="8" name="ObjectLayer">
   <object id="4" name="nix" type="Player" x="79.2128" y="147.957"/>
  </objectgroup>
- <objectgroup id="10" name="LightsLayer">
-  <object id="22" name="swTest" type="Switch" x="215.063" y="145.882">
-   <point/>
-  </object>
- </objectgroup>
  <objectgroup id="9" name="PortalsLayer">
   <object id="13" name="bajar_escaleras_hab" type="Portal" x="266.771" y="47.9171" width="43.4187" height="36.5734">
    <properties>
@@ -1825,7 +1820,7 @@
   </object>
   <object id="16" name="subir_escaleras_salon" type="Portal" x="388.416" y="733.868" width="21.12" height="23.3223">
    <properties>
-    <property name="target" value="salida_ciudad"/>
+    <property name="target" value="&quot;&quot;"/>
    </properties>
   </object>
   <object id="18" name="puerta_casa_int" type="Portal" x="90.5" y="450" width="25.5" height="31">
@@ -1848,12 +1843,40 @@
   </object>
  </objectgroup>
  <objectgroup id="7" name="RoomLayer">
-  <object id="1" name="habitacion_casanix" type="Room" x="46.062" y="80.6086" width="276.721" height="142.374"/>
-  <object id="2" name="habitacion_casanix" type="Room" x="253.69" y="16.4009" width="69.0931" height="65.9525"/>
-  <object id="7" name="salon_casanix" type="Room" x="30.5233" y="448.643" width="416.182" height="282.946"/>
-  <object id="8" name="salon_casanix" type="Room" x="352.229" y="705.426" width="95.9302" height="91.5698"/>
-  <object id="38" name="Exterior" type="Room" x="702.095" y="-63.3566" width="877.942" height="968.451"/>
-  <object id="39" name="Ruinas" type="Room " x="1999.13" y="50.9774" width="653.241" height="1015.74"/>
-  <object id="41" name="Ruinas interior" x="3258.68" y="25.7469" width="398.348" height="653.388"/>
+  <object id="1" name="habitacion_casanix" type="Room" x="46.062" y="80.6086" width="276.721" height="142.374">
+   <properties>
+    <property name="luminosity" type="int" value="255"/>
+   </properties>
+  </object>
+  <object id="2" name="habitacion_casanix" type="Room" x="253.69" y="16.4009" width="69.0931" height="65.9525">
+   <properties>
+    <property name="luminosity" type="int" value="255"/>
+   </properties>
+  </object>
+  <object id="7" name="salon_casanix" type="Room" x="30.5233" y="448.643" width="416.182" height="282.946">
+   <properties>
+    <property name="luminosity" type="int" value="255"/>
+   </properties>
+  </object>
+  <object id="8" name="salon_casanix" type="Room" x="352.229" y="705.426" width="95.9302" height="91.5698">
+   <properties>
+    <property name="luminosity" type="int" value="255"/>
+   </properties>
+  </object>
+  <object id="38" name="Exterior" type="Room" x="702.095" y="-63.3566" width="877.942" height="968.451">
+   <properties>
+    <property name="luminosity" type="int" value="100"/>
+   </properties>
+  </object>
+  <object id="39" name="Ruinas" type="Room " x="1999.13" y="50.9774" width="653.241" height="1015.74">
+   <properties>
+    <property name="luminosity" type="int" value="100"/>
+   </properties>
+  </object>
+  <object id="41" name="Ruinas interior" type="Room" x="3258.68" y="25.7469" width="398.348" height="653.388">
+   <properties>
+    <property name="luminosity" type="int" value="50"/>
+   </properties>
+  </object>
  </objectgroup>
 </map>
