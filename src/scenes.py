@@ -4,7 +4,7 @@ from resourceManager import ResourceManager
 from saveManager import SaveManager
 from switch import Switch
 from door import Door
-from objects import LightObject
+from objects import LightObject, Portal
 
 from shadow import Shadow
 from components import ChasePlayer, Health
@@ -28,7 +28,7 @@ class TestScene(abstract.Scene):
         self.room_data   = [] # lista de (bbox_world, mask_surface) pre-computados por room
         self.player = None
         self.light_screen = self.game.screen.copy()
-        self.map    = objects.tileMap("TestMap",
+        self.map    = objects.tileMap("lvl1_tutorial",
                                       back_group=self.groups["map_back"],
                                       front_group=self.groups["map_front"])
         self.camera = objects.Camera()
@@ -63,6 +63,8 @@ class TestScene(abstract.Scene):
         # 1. Player siempre se actualiza
         self.player.update(dt, map=self.map.reachable)
 
+        all_entities = self.entities_dict
+
         # 2. Filtrar entidades activas en rooms visibles (spritecollide C-level)
         updated = {id(self.player)}
         cam = self.camera.pos
@@ -75,6 +77,11 @@ class TestScene(abstract.Scene):
                 if ent_id not in updated:
                     updated.add(ent_id)
                     ent.update(dt, self.player.pos.topleft)
+                for portal in self.portals:
+                 if portal.pos.collidepoint(self.player.pos.center):
+                  portal.teleport_player(self.player, all_entities)
+                  print("Portal rect:", portal.pos)
+                  print("Player:", self.player.pos.center)
 
         # 3. Update gráfico de todos los sprites (posición, animación, Y-sort)
         for g in self.groups.values():
@@ -138,7 +145,9 @@ class TestScene(abstract.Scene):
         entity_classes = {
             "Switch": Switch, "Door": Door,
             "Player": player.Player, "Shadow": Shadow,
+            "Portal": Portal
         }
+        self.portals = []
         room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
         temp = {}
         for obj in self.map.tmx.objects:
@@ -159,8 +168,23 @@ class TestScene(abstract.Scene):
             cls = entity_classes.get(obj_type)
             if not cls:
                 continue
-            ent = cls(pos=(obj.x, obj.y), graphic_group=self.groups["entities"], light_group=self.groups["lights"], **obj.properties)
-            temp[obj.name or str(obj.id)] = ent
+            if obj_type == "Portal":
+             ent = cls(
+             pos=(obj.x, obj.y),
+             size=(obj.width, obj.height),
+             name=obj.name,
+             graphic_group=self.groups["entities"],
+             light_group=self.groups["lights"],
+             **obj.properties)
+             self.portals.append(ent)
+            else:
+             ent = cls(
+             pos=(obj.x, obj.y),
+             graphic_group=self.groups["entities"],
+             light_group=self.groups["lights"],
+             **obj.properties)
+
+            temp[(obj.name or str(obj.id)).strip()] = ent
             if obj_type == "Player":
                 self.player = ent
         # Registrar rooms y pre-computar máscara por room (una sola vez)
@@ -186,6 +210,7 @@ class TestScene(abstract.Scene):
                     ent.target_objects.append(r)
                     if len(names) == 1:
                         ent.target = r
+        self.entities_dict = temp
 
 
 # ─────────────────────────────────────────────────────────────────────

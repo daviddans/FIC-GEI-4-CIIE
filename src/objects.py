@@ -249,3 +249,38 @@ class TextInput(abstract.Object):
     def draw(self):             pass
     def serialize(self):        return {"value": self.value}
     def unserialize(self, d):   self.value = d["value"]; self._render()
+
+
+class Portal(abstract.Object):
+    def __init__(self, pos, size=(32,32), name=None, **kwargs):
+        super().__init__("portal", pos)
+
+        scale = ResourceManager.getConfig().getint("video", "scale")
+        self.pos.size = (size[0]*scale, size[1]*scale)
+
+        self.name = name
+        self.target_name = kwargs.get("target", "").replace('"','').strip()
+        self.cooldown = 0
+
+    def update(self, dt, player_pos):
+        if self.cooldown > 0:
+            self.cooldown -= dt
+        return None
+
+    def teleport_player(self, player, all_objects):
+
+     if not self.target_name:
+        return
+
+     target_obj = all_objects.get(self.target_name)
+
+     if target_obj:
+
+        print("TELEPORTANDO A:", self.target_name)
+
+        player.pos.center = target_obj.pos.center
+        player.pos.y += target_obj.pos.h + 10
+
+        if hasattr(player, "movement"):
+            player.movement._x = float(player.pos.x)
+            player.movement._y = float(player.pos.y)

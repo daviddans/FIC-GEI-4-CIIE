@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="500" height="500" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="17">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="500" height="500" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="19">
  <tileset firstgid="1" name="CityTileset" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="CityTileset.png" width="256" height="256"/>
   <tile id="0">
@@ -2810,9 +2810,14 @@
     <property name="target" value="&quot;subir_escaleras_salon&quot;"/>
    </properties>
   </object>
-  <object id="16" name="subir_escaleras_salon" type="Portal" x="377.34" y="708.956" width="43.4619" height="27.1323">
+  <object id="16" name="subir_escaleras_salon" type="Portal" x="386.34" y="708.956" width="30.4619" height="18.1323">
    <properties>
     <property name="target" value="&quot;bajar_escaleras_hab&quot;"/>
+   </properties>
+  </object>
+  <object id="18" name="puerta_casa" type="Portal" x="90.5" y="450" width="25.5" height="31">
+   <properties>
+    <property name="target" value="bajar_escaleras_hab"/>
    </properties>
   </object>
  </objectgroup>
@@ -3324,6 +3329,6 @@
   <object id="1" name="habitacion_casanix" type="Room" x="46.062" y="80.6086" width="276.721" height="142.374"/>
   <object id="2" name="habitacion_casanix" type="Room" x="253.69" y="16.4009" width="69.0931" height="65.9525"/>
   <object id="7" name="salon_casanix" type="Room" x="30.5233" y="448.643" width="416.182" height="282.946"/>
-  <object id="8" name="s alon_casanix" type="Room" x="352.229" y="705.426" width="95.9302" height="91.5698"/>
+  <object id="8" name="salon_casanix" type="Room" x="352.229" y="705.426" width="95.9302" height="91.5698"/>
  </objectgroup>
 </map>
