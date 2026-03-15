@@ -45,7 +45,6 @@ class Game:
             scene.draw()
             pygame.display.flip()
 
-            if dt != 0: print("FPS: %s", 1 / dt * 1000) # Mostramos los fps por consola
 
     def run(self):
         while (len(self.sceneStack) > 0):

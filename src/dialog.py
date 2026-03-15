@@ -71,7 +71,7 @@ class DialogScene(abstract.Scene):
         self.dialog_manager = dialog_manager
         self.parent_scene = game.sceneStack[-1] if game.sceneStack else None
         self.font_name = pygame.font.SysFont("Arial", 20, bold=True)
-        self.font_text = pygame.font.SysFont("Arial", 22)
+        self.font_text = pygame.font.SysFont("Arial", 16)
         self.font_hint = pygame.font.SysFont("Arial", 16)
         self.padding = 20
 
@@ -165,6 +165,8 @@ class DialogScene(abstract.Scene):
             text_y = box_y + self.padding + name_surf.get_height() + 6
             for line in lines:
                 surf = self.font_text.render(line, True, (255, 255, 255))
+                if text_y + surf.get_height() > box_y + box_h - self.padding:
+                    break
                 screen.blit(surf, (box_x + self.padding, text_y))
                 text_y += surf.get_height() + 4
 

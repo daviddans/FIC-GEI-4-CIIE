@@ -1,5 +1,5 @@
 import pygame
-import player, objects, abstract, audio, switch, door
+import player, objects, abstract, audio, switch, door, npc, table
 from resourceManager import ResourceManager
 from saveManager import SaveManager
 from switch import Switch
@@ -144,7 +144,11 @@ class TestScene(abstract.Scene):
             "Switch": Switch, "Door": Door,
             "Player": player.Player, "Shadow": Shadow,
             "Portal": Portal,
-            "Light": LightObject
+            "Light": LightObject,
+            "NPC": npc.NPC,
+            "Waypoint": objects.Waypoint,
+            "Table": table.Table,
+            "Table": table.Table,
         }
         room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
         temp = {}
@@ -211,6 +215,11 @@ class TestScene(abstract.Scene):
                     ent.target_objects.append(r)
                     if len(names) == 1:
                         ent.target = r
+
+        # Resolver waypoints de NPCs (usando waypoint_prefix definido en Tiled)
+        for ent in temp.values():
+            if hasattr(ent, "resolve_waypoints"):
+                ent.resolve_waypoints(temp)
 
 
 # ─────────────────────────────────────────────────────────────────────
