@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<<<<<<< HEAD
 <map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="300" height="100" tilewidth="16" tileheight="16" infinite="0" nextlayerid="14" nextobjectid="46">
+=======
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="500" height="500" tilewidth="16" tileheight="16" infinite="0" nextlayerid="13" nextobjectid="42">
+>>>>>>> 77d717ddd935d8c07168581e439e1dc8d71509e6
  <tileset firstgid="1" name="CityTileset" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="CityTileset.png" width="256" height="256"/>
   <tile id="0">
@@ -1844,6 +1848,17 @@
   <object id="45" name="puerta_ruinas" type="Portal" x="2307" y="246.797" width="57.0339" height="21.8475">
    <properties>
     <property name="target" value="  Interior_ruinas"/>
+   </properties>
+  </object>
+  <object id="40" name="door1" type="Door" x="136" y="126">
+   <properties>
+    <property name="is_locked" type="bool" value="true"/>
+    <property name="required_key" value="key1"/>
+   </properties>
+  </object>
+  <object id="41" name="key1" type="Key" x="134" y="164">
+   <properties>
+    <property name="key_id" value="key1"/>
    </properties>
   </object>
  </objectgroup>
