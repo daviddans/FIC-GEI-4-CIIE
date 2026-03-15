@@ -284,3 +284,12 @@ class Portal(abstract.Object):
     def update(self, dt):
         if self.cooldown > 0:
             self.cooldown -= dt
+
+class Waypoint(abstract.Object):
+    """Marcador de posición para rutas de NPCs. Sin gráfico ni lógica."""
+    def __init__(self, pos, name="waypoint", **kwargs):
+        super().__init__(name, pos)
+
+    def update(self, dt):       pass
+    def serialize(self):        return {}
+    def unserialize(self, data): pass
