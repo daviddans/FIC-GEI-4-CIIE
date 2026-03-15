@@ -105,10 +105,14 @@ class Graphic(pygame.sprite.Sprite):
         #Retornar flag de ultimo frame
         return last_frame
     
-    def update(self, dt):
+    def update(self, dt, *args):
         pos = (self.parent.pos[0] - self._camera_pos[0] + self._offset[0], self.parent.pos[1] - self._camera_pos[1] + self._offset[1])
         #Actualizar posicion
         self.rect.topleft = pos
+        # Y-sort: actualizar layer en grupos LayeredUpdates
+        for group in self.groups():
+            if isinstance(group, pygame.sprite.LayeredUpdates):
+                group.change_layer(self, self.rect.bottom)
 
     def cameraUpdate(self, pos):
         self._camera_pos = pos
@@ -235,7 +239,7 @@ class Health:
 
 class ChasePlayer(abstract.Behavior):
     def __init__(self, vision_range=300):
-        self.vision_range = vision_range
+        self.vision_range = vision_range * ResourceManager.getConfig().getint("video","scale")
 
     def update(self, npc, dt, player_pos):
         target = pygame.math.Vector2(player_pos)

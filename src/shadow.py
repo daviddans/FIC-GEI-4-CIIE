@@ -7,9 +7,9 @@ class Shadow(abstract.Object):
     def __init__(self, pos, graphic_group=None, **kwargs):
         graphic_group = graphic_group 
         super().__init__("Shadow", pos)
-        self.speed = 0.1
+        self.speed = 0.01
         self.move_vec = pygame.math.Vector2(pos)
-        self.behavior = ChasePlayer(vision_range=400)
+        self.behavior = ChasePlayer(vision_range=700)
         # Gráficos
         self.atlas = ResourceManager.getAtlas("shadow")
         self.graphic = Graphic(self, self.atlas)

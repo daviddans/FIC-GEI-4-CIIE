@@ -21,6 +21,9 @@ class Game:
             enabled=cfg.getboolean("debug", "enabled", fallback=False),
             log_path=os.path.join(cfg.get("PATH", "user_path"), "debug.log")
         )
+
+        DebugLogger.log("\n" * 5 + "_" * 100 + "\n" *5 + "*" * 30 +"\n*--- LAUNCHING UNLIGHTED ---*\n" + "*" * 30 + "\n" * 5)
+
         # Configurar pantalla al arrancar
         xres = self.config.getint('video', 'xres')
         yres = self.config.getint('video', 'yres')
