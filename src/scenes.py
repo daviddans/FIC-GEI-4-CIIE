@@ -68,42 +68,50 @@ class GameScene(abstract.Scene):
         return int(sum(active) / len(active)) if active else 25
 
     def update(self, dt):
-        if not self.player:
-            return
+     if not self.player:
+        return
 
-        # 1. Player siempre se actualiza
-        self.player.update(dt, map=self.map.reachable)
+    # 1. Player y shadows siempre se actualizan
+     self.player.update(dt, map=self.map.reachable)
+     updated = {id(self.player)}
+ 
+     for sprite in list(self.groups["entities"].sprites()):
+        if hasattr(sprite, 'parent') and isinstance(sprite.parent, Shadow):
+            shadow = sprite.parent
+            shadow_id = id(shadow)
+            if shadow_id not in updated:
+                updated.add(shadow_id)
+                if shadow.pos.colliderect(self.player.pos):
+                    shadow.on_collision(self.player)
+                shadow.update(dt, self.player.pos.topleft, map=self.map.reachable)
 
-        # 2. Filtrar entidades activas en rooms visibles (spritecollide C-level)
-        updated = {id(self.player)}
-        cam = self.camera.pos
-        for room in self._active_rooms():
-            room_sprite = pygame.sprite.Sprite()
-            room_sprite.rect = room.move(-cam.x, -cam.y)
-            #Actualizar entidades
-            for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
-                ent = sprite.parent
-                ent_id = id(ent)
-                if ent_id not in updated:
-                    updated.add(ent_id)
-                    if ent.pos.colliderect(self.player.pos):
-                        ent.on_collision(self.player)
-                    if isinstance(ent, Key):
-                     ent.update(dt, self.player.pos.topleft)
-                    else:
-                     ent.update(dt)
+    # 2. Filtrar entidades activas en rooms visibles
+     cam = self.camera.pos
+     for room in self._active_rooms():
+        room_sprite = pygame.sprite.Sprite()
+        room_sprite.rect = room.move(-cam.x, -cam.y)
+        for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
+            ent = sprite.parent
+            ent_id = id(ent)
+            if ent_id not in updated:
+                updated.add(ent_id)
+                if ent.pos.colliderect(self.player.pos):
+                    ent.on_collision(self.player)
+                if isinstance(ent, Key):
+                    ent.update(dt, self.player.pos.topleft)
+                else:
+                    ent.update(dt)
 
-        # 3. Update gráfico de todos los sprites (posición, animación, Y-sort)
-        for g in self.groups.values():
-            g.update(dt)
+    # 3. Update gráfico
+     for g in self.groups.values():
+        g.update(dt)
 
-        # 4. Muerte / transiciones
-        if self.player.health.is_dead:
-            self.game.switchScene(GameOverScene(self.game))
-            return
-        
-        self.camera.update(dt)
+     if self.player.health.is_dead:
+         self.game.switchScene(GameOverScene(self.game))
+         return
 
+     self.camera.update(dt)
+ 
     def draw(self):
         screen_rect = self.game.screen.get_rect()
         self.game.screen.fill("black")
@@ -501,9 +509,7 @@ class GameOverScene(abstract.Scene):
         self.sprites.update(dt)
       
         if self.retry.update(dt): 
-            self._parent.player.health.reset()
-            SaveManager.load(self._parent)
-            self.game.quitScene()
+           self.game.changeScene(TestScene(self.game))
        
         if self.quit.update(dt): 
             self.game.changeScene(MainMenu(self.game))
