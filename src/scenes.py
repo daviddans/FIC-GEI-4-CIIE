@@ -5,7 +5,7 @@ from saveManager import SaveManager
 from switch import Switch
 from door import Door
 from objects import LightObject
-
+from audio import SoundManager
 from shadow import Shadow
 from components import ChasePlayer, Health
 from healthHUD import HealthHUD
@@ -16,6 +16,9 @@ from healthHUD import HealthHUD
 class TestScene(abstract.Scene):
     def __init__(self, game, name=None):
         super().__init__(game, name)
+        self.audio = audio.SoundManager()
+        self.audio.load_music("level1.mp3")
+        self.audio.play_music(loop=True)
         self.groups = {
             "map_back":  pygame.sprite.Group(),  # capas Z <= 0 (suelo, paredes)
             "static":    pygame.sprite.Group(),  # entidades sin movimiento (llaves, puertas)
@@ -163,10 +166,14 @@ class MainMenu(abstract.Scene):
         self.quit     = objects.TextButton("Quit",     20, 90)
         self.sprites  = pygame.sprite.Group(
             self.play.graphic, self.settings.graphic, self.quit.graphic)
+        self.audio.load_music("menu_music.mp3")
+        self.audio.play_music(loop=True)
 
     def update(self, dt):
         self.sprites.update(dt)
-        if self.play.update(dt):     self.game.changeScene(TestScene(self.game))
+        if self.play.update(dt):     
+         pygame.mixer.music.stop() 
+         self.game.changeScene(TestScene(self.game))
         if self.settings.update(dt): self.game.switchScene(SettingsScene(self.game))
         if self.quit.update(dt):     self.game.quitGame()
 

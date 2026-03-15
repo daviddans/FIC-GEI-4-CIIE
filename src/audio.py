@@ -29,7 +29,7 @@ class SoundManager:
   # ------------------------- MUSICA ----------------------------------------------------------------
 
     def load_music(self, relative_path):
-        path = os.path.join(self.config.get("engine", "assets_path"), relative_path)
+        path = os.path.join(self.config.get("PATH", "music_path"), relative_path)
         try:
             pygame.mixer.music.load(path)
             self.music_loaded = path

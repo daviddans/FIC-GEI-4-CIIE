@@ -36,20 +36,22 @@
 </data>
  </layer>
  <objectgroup id="7" name="Capa de Objetos 1">
-  <object id="1" x="208.482" y="168.012" height="1.22637"/>
   <object id="4" name="player" type="Player" x="199.898" y="153.296"/>
   <object id="5" name="door1" type="Door" x="334.798" y="161.88">
    <properties>
     <property name="group" value="TestGroup"/>
+    <property name="is_locked" type="bool" value="true"/>
+    <property name="proximity_range" type="int" value="80"/>
    </properties>
   </object>
-  <object id="6" x="101.788" y="377.721"/>
   <object id="7" name="switch1" type="Switch" x="72.3556" y="210.935" width="1.22637" height="2.45273">
    <properties>
     <property name="group" value="TestGroup"/>
+    <property name="interact_range" type="int" value="50"/>
+    <property name="is_pressed" type="bool" value="false"/>
+    <property name="target_object" value="door1"/>
    </properties>
   </object>
-  <object id="8" x="207.256" y="133.674"/>
   <object id="9" name="shadow" type="Shadow" x="91.9775" y="120.184">
    <properties>
     <property name="behavior" value="chase"/>
