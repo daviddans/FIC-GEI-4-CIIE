@@ -5,14 +5,14 @@ import pygame
 from debugLogger import DebugLogger
 
 class Switch(abstract.Object, abstract.Observable):
-    def __init__(self, pos, is_pressed=False, interact_range=50, target_object=None, graphic_group=None, light_group=None, **kwargs):
-        graphic_group = graphic_group or []
-        light_group = light_group or []
+    def __init__(self, pos, graphic_group=None, light_group=None, **kwargs):
+        graphic_group = graphic_group 
+        light_group = light_group 
         abstract.Object.__init__(self, "switch", pos)
         abstract.Observable.__init__(self)
-        self.is_pressed = is_pressed
-        self.interact_range = interact_range
-        self.target = target_object
+        self.is_pressed = kwargs.get("is_pressed", "False")
+        self.interact_range = kwargs.get("interact_range", "50")
+        self.target = kwargs.get("target_object", None)
         self.already_pressed = False
         self.atlas = ResourceManager.getAtlas("interruptor")
         self.graphic = components.Graphic(self, self.atlas)
@@ -29,7 +29,7 @@ class Switch(abstract.Object, abstract.Observable):
         else:
             self.graphic.setState("switch-off")
         DebugLogger.log("Switch init: pos=%s is_pressed=%s interact_range=%s",
-                        pos, is_pressed, self.interact_range)
+                        pos, self.is_pressed, self.interact_range)
 
 
     def update(self, dt, player_pos):

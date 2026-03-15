@@ -5,7 +5,7 @@ from resourceManager import ResourceManager
 from debugLogger import DebugLogger
 class Shadow(abstract.Object):
     def __init__(self, pos, graphic_group=None, **kwargs):
-        graphic_group = graphic_group or []
+        graphic_group = graphic_group 
         super().__init__("Shadow", pos)
         self.speed = 0.1
         self.move_vec = pygame.math.Vector2(pos)

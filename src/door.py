@@ -5,14 +5,14 @@ import pygame
 from debugLogger import DebugLogger
 
 class Door(abstract.Object, abstract.Observer):
-    def __init__(self, pos, is_locked=True, proximity_range=80, graphic_group=None, light_group=None, **kwargs):
-        graphic_group = graphic_group or []
-        light_group = light_group or []
+    def __init__(self, pos, graphic_group=None, light_group=None, **kwargs):
+        graphic_group = graphic_group
+        light_group = light_group 
         super().__init__("door", pos)
         
-        self.is_locked = is_locked
+        self.is_locked = kwargs.get("is_locked", "True")
         self.is_open = False
-        self.proximity_range = proximity_range # Distancia para que se abra sola
+        self.proximity_range = kwargs.get("proximity_range", None) # Distancia para que se abra sola
         
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas)
@@ -29,7 +29,7 @@ class Door(abstract.Object, abstract.Observer):
         else:
             self.graphic.setState("unlocked")
         DebugLogger.log("Door init: pos=%s is_locked=%s proximity_range=%s",
-                        pos, is_locked, proximity_range)
+                        pos, self.is_locked, self.proximity_range)
 
     def on_notify(self, entity, event):
         if event == 'SWITCH_ON':
@@ -56,7 +56,7 @@ class Door(abstract.Object, abstract.Observer):
 
         # Se calcula la distancia al jugador
         p_vec = pygame.Vector2(player_pos)
-        d_vec = pygame.Vector2(self.pos)
+        d_vec = pygame.Vector2(self.pos.topleft)
         distance = d_vec.distance_to(p_vec)
 
         if distance < self.proximity_range:

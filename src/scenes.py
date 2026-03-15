@@ -27,7 +27,7 @@ class TestScene(abstract.Scene):
         self.rooms = []
         self.player = None
         self.light_screen = self.game.screen.copy()
-        self.map    = objects.tileMap("TestGigante",
+        self.map    = objects.tileMap("TestMap",
                                       back_group=self.groups["map_back"],
                                       front_group=self.groups["map_front"])
         self.camera = objects.Camera()
