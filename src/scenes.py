@@ -75,12 +75,20 @@ class TestScene(abstract.Scene):
                 ent = sprite.parent
                 ent_id = id(ent)
                 if ent_id not in updated:
+                    if hasattr(self.player, 'lantern') and ent is self.player.lantern: #cuando entraba a cualquier room le cambia a posicion del farol
+                       continue
                     updated.add(ent_id)
                     ent.update(dt, self.player.pos.topleft)
 
         # 3. Update gráfico de todos los sprites (posición, animación, Y-sort)
         for g in self.groups.values():
             g.update(dt)
+        
+        if hasattr(self.player, 'lantern'):
+         lan_graphic = self.player.lantern.graphic
+         for group in lan_graphic.groups():
+             if isinstance(group, pygame.sprite.LayeredUpdates):
+              group.change_layer(lan_graphic, self.player.graphic.rect.bottom + 1)
 
         # 4. Muerte / transiciones
         if self.player.health.is_dead:
@@ -99,6 +107,7 @@ class TestScene(abstract.Scene):
         
         # 2. Entidades: Y-sorted automáticamente por LayeredUpdates
         self.groups["entities"].draw(self.game.screen)
+        
 
         # 3. Mapa foreground (Z > 0): sobre las entidades
         for sprite in self.groups["map_front"].sprites():
