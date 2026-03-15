@@ -235,17 +235,43 @@ class Health:
         self.is_dead = False
 
 class ChasePlayer(abstract.Behavior):
-    def __init__(self, vision_range=300):
+    def __init__(self, vision_range=1):
         self.vision_range = vision_range * ResourceManager.getConfig().getint("video","scale")
 
     def update(self, npc, dt, player_pos):
-        target = pygame.math.Vector2(player_pos)
-        current = pygame.math.Vector2(npc.pos.topleft)
-        direction = target - current
-        distance = direction.length()
+     target = pygame.math.Vector2(player_pos)
+     current = pygame.math.Vector2(npc.pos.topleft)
+     direction = target - current
+     distance = direction.length()
 
-        if 5 < distance < self.vision_range:
-            direction.normalize_ip()
-            # Aplicamos el movimiento al NPC que nos pasen
-            npc.move_vec += direction * npc.speed * dt
-            npc.pos.topleft = (npc.move_vec.x, npc.move_vec.y)
+     if 5 < distance < self.vision_range:
+        direction.normalize_ip()
+        npc.move.update(direction, dt, getattr(npc, '_map', None))
+        npc.move_vec.x = npc.move._x  
+        npc.move_vec.y = npc.move._y
+
+class PatrolBehavior(abstract.Behavior):
+    def __init__(self, patrol_range=100):
+        scale = ResourceManager.getConfig().getint("video", "scale")
+        self.patrol_range = patrol_range * scale
+        self.direction = 1
+        self.origin = None
+
+    def update(self, npc, dt, player_pos):
+     if self.origin is None:
+        self.origin = pygame.math.Vector2(npc.pos.topleft)
+        self.last_x = npc.pos.x
+
+     dist_from_origin = npc.pos.x - self.origin.x
+     if dist_from_origin > self.patrol_range:
+        self.direction = -1
+     elif dist_from_origin < -self.patrol_range:
+        self.direction = 1
+
+    
+     if npc.pos.x == self.last_x:
+        self.direction *= -1
+
+     self.last_x = npc.pos.x
+     vector = pygame.math.Vector2(self.direction, 0)
+     npc.move.update(vector, dt, getattr(npc, '_map', None))

@@ -285,6 +285,45 @@ class Portal(abstract.Object):
         if self.cooldown > 0:
             self.cooldown -= dt
 
+
+class ScenePortal(abstract.Object):
+    """Portal que cambia de mapa. Propiedad Tiled: target_map (nombre del TMX sin extensión)."""
+    COOLDOWN_MS = 500
+
+    def __init__(self, pos, size=(32, 32), name=None, graphic_group=None, **kwargs):
+        super().__init__(name or "scene_portal", pos)
+        scale = ResourceManager.getConfig().getint("video", "scale")
+        self.pos.size = (size[0] * scale, size[1] * scale)
+        self.target_map = kwargs.get("target_map", "").replace('"', '').strip()
+        self.cooldown = 0
+        self._scene = None
+        self.graphic = components.Graphic(self, None)
+        self.graphic.image = pygame.Surface(self.pos.size, pygame.SRCALPHA)
+        self.graphic.rect = self.pos.copy()
+        if graphic_group:
+            self.graphic.add(graphic_group)
+        DebugLogger.log("ScenePortal init: name=%s target_map=%s", name, self.target_map)
+
+    def setup_scene(self, scene):
+        self._scene = scene
+
+    def on_collision(self, other):
+        if self.cooldown > 0 or not self.target_map or not self._scene:
+            return
+        DebugLogger.log("ScenePortal '%s': cambiando a mapa '%s'", self.name, self.target_map)
+        from saveManager import SaveManager
+        from scenes import GameScene
+        SaveManager.save(self._scene)
+        self._scene.game.changeScene(GameScene(self._scene.game, self.target_map))
+        self.cooldown = self.COOLDOWN_MS
+
+    def update(self, dt):
+        if self.cooldown > 0:
+            self.cooldown -= dt
+
+    def serialize(self):       return {}
+    def unserialize(self, _d): pass
+
 class Waypoint(abstract.Object):
     """Marcador de posición para rutas de NPCs. Sin gráfico ni lógica."""
     def __init__(self, pos, name="waypoint", **kwargs):

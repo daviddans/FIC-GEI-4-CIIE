@@ -1,16 +1,19 @@
 import pygame
 import abstract
-from components import ChasePlayer, Graphic
+from components import ChasePlayer, PatrolBehavior, Graphic, Movement
 from resourceManager import ResourceManager
 from debugLogger import DebugLogger
 class Shadow(abstract.Object):
     def __init__(self, pos, name="shadow", graphic_group=None, **kwargs):
         super().__init__(name, pos)
-        self.speed    = float(kwargs.get("speed", 0.01))
-        vision_range  = int(kwargs.get("vision_range", 700))
+        self.speed    = float(kwargs.get("speed", 0.05))
+        vision_range  = int(kwargs.get("vision_range", 100))
         self.move_vec  = pygame.math.Vector2(pos)
-        self.behavior  = ChasePlayer(vision_range=vision_range)
+        self.behavior = ChasePlayer(vision_range=vision_range)
+        self.patrol = PatrolBehavior(patrol_range=100)
+        self.move = Movement(self, speed=self.speed)
         self._player_pos = None
+        self._damage_cooldown = 0
         self.atlas = ResourceManager.getAtlas("shadow")
         self.graphic = Graphic(self, self.atlas)
         self.graphic.add(graphic_group)
@@ -20,14 +23,28 @@ class Shadow(abstract.Object):
                         name, pos, self.speed, vision_range)
 
     def on_collision(self, other):
-        self._player_pos = other.pos.topleft
-        other.health.take_damage(1)
+     self._player_pos = other.pos.topleft
+     if self._damage_cooldown <= 0:
+          other.health.take_damage(1)
+          self._damage_cooldown = 1000 
 
-    def update(self, dt):
-        if self.behavior and self._player_pos:
+    def update(self, dt, player_pos=None, map=None):
+     if self._damage_cooldown > 0:
+        self._damage_cooldown -= dt
+     if map:
+        self._map = map
+     if player_pos:
+        self._player_pos = player_pos
+    
+     if self._player_pos:
+        dist = pygame.math.Vector2(self.pos.center).distance_to(
+               pygame.math.Vector2(self._player_pos))
+        if dist < self.behavior.vision_range:
             self.behavior.update(self, dt, self._player_pos)
-        self._player_pos = None
-        self.graphic.update(dt)
+        else:
+            self.patrol.update(self, dt, self._player_pos)
+    
+     self.graphic.update(dt)
 
 
     def serialize(self):
@@ -37,10 +54,10 @@ class Shadow(abstract.Object):
         }
     
     def unserialize(self, data):
-        # se recupera la posicion del rect
+        
         if "pos" in data:
             self.pos.topleft = data["pos"]
-        # se recupera el vector para mantener la fisica 
+   
         if "move_vec" in data:
             self.move_vec = pygame.math.Vector2(data["move_vec"])
 
