@@ -3,11 +3,14 @@ from resourceManager import ResourceManager
 import components
 import pygame
 from debugLogger import DebugLogger
+from audio import SoundManager
 
 class Switch(abstract.Object, abstract.Observable):
     def __init__(self, pos, name="switch", graphic_group=None, light_group=None, **kwargs):
         abstract.Object.__init__(self, name, pos)
         abstract.Observable.__init__(self)
+        self.sound_manager = SoundManager()
+        self.sound_manager.load_sound("switch", "switch_sound.wav")
         self.is_pressed = kwargs.get("is_pressed", "false").lower() == "true"
         self.target = kwargs.get("target_object", None)
         self.already_pressed = False
@@ -37,6 +40,7 @@ class Switch(abstract.Object, abstract.Observable):
 
     def toggle(self):
         self.is_pressed = not self.is_pressed
+        self.sound_manager.play_sound("switch") 
         
         if self.is_pressed:
             self.graphic.setState("switch-on")

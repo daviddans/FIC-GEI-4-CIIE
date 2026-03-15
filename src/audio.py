@@ -15,7 +15,7 @@ class SoundManager:
    # ---------------------- SONIDOS ---------------------------------------------------------------
 
     def load_sound(self, name, relative_path):
-        path = os.path.join(self.config.get("engine", "assets_path"), relative_path)
+        path = os.path.join(self.config.get("PATH", "sounds_path"), relative_path)
         try:
             self.sounds[name] = pygame.mixer.Sound(path)
         except pygame.error as e:
@@ -43,3 +43,11 @@ class SoundManager:
             pygame.mixer.music.play(loops)
         except Exception as e:
             print(f"Error al reproducir música: {e}")
+
+    def change_music(self, relative_path, loop=True, fadeout_ms=500):
+     path = os.path.join(self.config.get("PATH", "music_path"), relative_path)
+     if self.music_loaded == path:
+        return  # ya está sonando esta música, no hacer nada
+     pygame.mixer.music.fadeout(fadeout_ms)
+     self.load_music(relative_path)
+     self.play_music(loop)

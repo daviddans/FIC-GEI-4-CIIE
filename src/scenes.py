@@ -18,8 +18,14 @@ class TestScene(abstract.Scene):
     def __init__(self, game, name=None):
         super().__init__(game, name)
         self.audio = audio.SoundManager()
-        self.audio.load_music("level1.mp3")
-        self.audio.play_music(loop=True)
+        self.room_music = {
+         "salon_casanix":      "home_music.mp3",
+         "habitacion_casanix": "home_music.mp3",
+         "pasillo":            "home_music.mp3",
+         "Exterior":           "home_music.mp3",
+         "Ruinas":             "ruinas.mp3"       
+        }
+        
         self.groups = {
             "map_back":  pygame.sprite.Group(),           # capas Z <= 0 (suelo, paredes)
             "entities":  pygame.sprite.LayeredUpdates(),  # todas las entidades, Y-sorted por layer
@@ -27,6 +33,8 @@ class TestScene(abstract.Scene):
             "lights":    pygame.sprite.Group(),           # todas las luces
             "hud":       pygame.sprite.Group(),           # HUD y efectos de pantalla
         }
+        self.room_names = []
+        self.current_music = None
         self.room_groups = [] # lista de listas: sub-rects agrupados por nombre (para _active_rooms)
         self.room_data   = [] # lista de (bbox_world, mask_surface) pre-computados por room
         self.player = None
@@ -94,6 +102,15 @@ class TestScene(abstract.Scene):
         if self.player.health.is_dead:
             self.game.switchScene(GameOverScene(self.game))
             return
+        
+        for room_name, rects in zip(self.room_names, self.room_groups):
+          for rect in rects:
+           if rect.collidepoint(self.player.pos.center):
+            music = self.room_music.get(room_name)
+            if music and music != self.current_music:
+                self.current_music = music
+                self.audio.change_music(music)
+            break
         
         self.camera.update(dt)
 
@@ -193,6 +210,7 @@ class TestScene(abstract.Scene):
 
         # Registrar rooms y pre-computar máscara por room (una sola vez)
         for name, rects in room_buckets.items():
+            self.room_names.append(name)
             self.room_groups.append(rects)
             bbox = rects[0].unionall(rects[1:])
             mask = pygame.Surface(bbox.size, pygame.SRCALPHA)
