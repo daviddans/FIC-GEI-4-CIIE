@@ -41,51 +41,60 @@ class DialogManager:
         return self.current_dialog_index >= len(self.dialogs)
 
 
+def load_dialogs_from_csv(filepath, key_column):
+    """
+    Ejemplo de uso:
+        tree_dialogs = load_dialogs_from_csv("trees.csv", key_column="tree_id")
+        npc_dialogs  = load_dialogs_from_csv("npcs.csv",  key_column="npc_id")
+    """
+    result = {}
+    with open(filepath, newline='', encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            key = row[key_column]
+            # Convertimos a int si es posible, para compatibilidad con indices numericos
+            try:
+                key = int(key)
+            except (ValueError, TypeError):
+                pass
+            dialog = Dialog(row["name"], row["text"])
+            result.setdefault(key, []).append(dialog)
+    return result
+
+
 class DialogScene(abstract.Scene):
-    # Velocidad del efecto typewriter: ms por carácter
+    # Velocidad del efecto typewriter: ms por caracter
     TYPEWRITER_SPEED = 40
 
     def __init__(self, game, dialog_manager, name="dialog"):
         super().__init__(game, name)
         self.dialog_manager = dialog_manager
-        # Guardamos referencia a la escena que hay debajo en el stack
         self.parent_scene = game.sceneStack[-1] if game.sceneStack else None
         self.font_name = pygame.font.SysFont("Arial", 20, bold=True)
         self.font_text = pygame.font.SysFont("Arial", 22)
         self.font_hint = pygame.font.SysFont("Arial", 16)
         self.padding = 20
 
-        # Estado typewriter
         self._visible_chars = 0
         self._time_acc = 0
         self._full_text = ""
-        self._wrapped_lines = []   # lista de (line_str, is_name_line)
+        self._wrapped_lines = []
         self._typewriter_done = False
 
         self._load_current_dialog()
 
-    # ------------------------------------------------------------------
-    # Helpers internos
-    # ------------------------------------------------------------------
     def _load_current_dialog(self):
-        """Prepara el texto del diálogo actual para el efecto typewriter."""
         dlg = self.dialog_manager.get_current_dialog()
         if dlg is None:
             return
-
         self._visible_chars = 0
         self._time_acc = 0
         self._typewriter_done = False
-
-        # Construimos el texto completo que vamos a mostrar
-        self._full_text = dlg.text          # solo el cuerpo para el typewriter
+        self._full_text = dlg.text
         self._speaker = dlg.name
 
     def _advance(self):
-        """Avanza: si el texto no se ha mostrado completo, lo completa;
-        si ya está completo, pasa al siguiente diálogo."""
         if not self._typewriter_done:
-            # Mostrar todo de golpe
             self._visible_chars = len(self._full_text)
             self._typewriter_done = True
         else:
@@ -96,7 +105,6 @@ class DialogScene(abstract.Scene):
                 self._load_current_dialog()
 
     def _wrap_text(self, text, max_width, font):
-        """Divide el texto en líneas que caben en max_width."""
         words = text.split(" ")
         lines = []
         current = ""
@@ -112,14 +120,10 @@ class DialogScene(abstract.Scene):
             lines.append(current.rstrip())
         return lines
 
-    # ------------------------------------------------------------------
-    # Ciclo de escena
-    # ------------------------------------------------------------------
     def events(self, events):
         for event in events:
             if event.type == pygame.QUIT:
                 self.game.quitGame()
-
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_SPACE, pygame.K_RETURN):
                     self._advance()
@@ -136,7 +140,6 @@ class DialogScene(abstract.Scene):
         screen = self.game.screen
         width, height = screen.get_size()
 
-        # Primero dibujamos la escena de debajo para que se vea el juego detrás
         if self.parent_scene:
             self.parent_scene.draw()
 
@@ -145,7 +148,6 @@ class DialogScene(abstract.Scene):
         box_x = 50
         box_y = height - box_h - 30
 
-        # Fondo de la caja
         pygame.draw.rect(screen, (10, 10, 30),
                          (box_x, box_y, box_w, box_h), border_radius=8)
         pygame.draw.rect(screen, (200, 200, 255),
@@ -153,11 +155,9 @@ class DialogScene(abstract.Scene):
 
         dlg = self.dialog_manager.get_current_dialog()
         if dlg:
-            # Nombre del hablante
             name_surf = self.font_name.render(self._speaker, True, (255, 220, 80))
             screen.blit(name_surf, (box_x + self.padding, box_y + self.padding))
 
-            # Texto visible hasta el carácter actual (typewriter)
             visible_text = self._full_text[:self._visible_chars]
             inner_w = box_w - self.padding * 2
             lines = self._wrap_text(visible_text, inner_w, self.font_text)
@@ -168,10 +168,9 @@ class DialogScene(abstract.Scene):
                 screen.blit(surf, (box_x + self.padding, text_y))
                 text_y += surf.get_height() + 4
 
-            # Indicador "continuar" parpadeante (solo si el texto ya se mostró)
             if self._typewriter_done:
                 tick = pygame.time.get_ticks()
-                if (tick // 500) % 2 == 0:        # parpadea cada 500 ms
+                if (tick // 500) % 2 == 0:
                     hint = "[ ESPACIO / ENTER ]"
                     hint_surf = self.font_hint.render(hint, True, (160, 160, 160))
                     screen.blit(hint_surf,
