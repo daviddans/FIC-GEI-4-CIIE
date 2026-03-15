@@ -156,10 +156,21 @@ class ResourceManager:
     #Leer archivo de configuración de disco
     def _read_Config():
         conf = ConfigParser()
-        try:
-            conf.read(filenames="config.ini", encoding="utf-8")
-        except:
-            raise FileNotFoundError("No se encuentra config.ini")
+        read_files = conf.read(filenames="config.ini", encoding="utf-8")
+        if not read_files:
+            conf.read_string(
+                "[video]\n"
+                "xres = 1920\nyres = 1080\nmaxfps = 60\nscale = 3\nfullscreen = 0\n"
+                "[engine]\n"
+                "width = 512\nheight = 288\ntile_size = 16\nchunk_size = 16\ntitle = Unlighted\n"
+                "[PATH]\n"
+                "assets_path = ../Assets/\nmaps_path = ../Assets/maps/\n"
+                "sounds_path = ../Assets/sounds/\nsprites_path = ../Assets/sprites/\n"
+                "user_path = ../User/\nfonts_path = ../Assets/fonts\n"
+                "[controls]\n"
+                "up = 119\ndown = 115\nleft = 97\nright = 100\n"
+                "[debug]\nenabled = false\n"
+            )
         return conf
     
     #Leer un json de disco

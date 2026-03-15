@@ -24,15 +24,41 @@ class Game:
 
         DebugLogger.log("\n" * 5 + "_" * 100 + "\n" *5 + "*" * 30 +"\n*--- LAUNCHING UNLIGHTED ---*\n" + "*" * 30 + "\n" * 5)
 
-        # Configurar pantalla al arrancar
-        xres = self.config.getint('video', 'xres')
-        yres = self.config.getint('video', 'yres')
-        flags = DEF_FLAGS | pygame.FULLSCREEN if self.config.getint('video', 'fullscreen') else DEF_FLAGS
-        self.screen = pygame.display.set_mode((xres, yres), flags=flags)
+        # Configurar pantalla al arrancar — con validación
+        try:
+            xres  = cfg.getint('video', 'xres')
+            yres  = cfg.getint('video', 'yres')
+            fs    = cfg.getboolean('video', 'fullscreen')
+            scale = cfg.getint('video', 'scale')
+            rw    = cfg.getint('engine', 'width')
+            rh    = cfg.getint('engine', 'height')
+
+            desktop = pygame.display.get_desktop_sizes()[0]
+            if not fs and (xres > desktop[0] or yres > desktop[1]):
+                xres, yres = min(xres, desktop[0]), min(yres, desktop[1])
+            if scale < 1:
+                scale = max(1, min(xres // rw, yres // rh))
+
+            cfg.set('video', 'xres', str(xres))
+            cfg.set('video', 'yres', str(yres))
+            cfg.set('video', 'scale', str(scale))
+        except (ValueError, KeyError):
+            DebugLogger.log("WARN: config video inválido, usando defaults seguros")
+            xres, yres, fs = 1920, 1080, False
+            cfg.set('video', 'xres', '1920')
+            cfg.set('video', 'yres', '1080')
+            cfg.set('video', 'fullscreen', '0')
+            cfg.set('video', 'scale', '3')
+
+        self.set_video_mode(xres, yres, fs)
         pygame.display.set_caption(self.config.get('engine', 'title', fallback='Unlighted'))
         self.sceneStack = [scenes.MainMenu(self,"MainMenu")]
         self.clock = pygame.time.Clock()
         
+    def set_video_mode(self, width, height, fullscreen):
+        flags = DEF_FLAGS | pygame.FULLSCREEN if fullscreen else DEF_FLAGS
+        self.screen = pygame.display.set_mode((width, height), flags=flags)
+
     def game_loop(self,scene):  
         self.sceneQuitFlg = False
         pygame.event.clear()

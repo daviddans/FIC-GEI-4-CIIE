@@ -4,7 +4,7 @@ from resourceManager import ResourceManager
 from saveManager import SaveManager
 from switch import Switch
 from door import Door
-from objects import LightObject, Portal
+from objects import LightObject, Portal, ScenePortal
 from key import Key
 from shadow import Shadow
 from components import ChasePlayer, Health
@@ -12,11 +12,12 @@ from healthHUD import HealthHUD
 from debugLogger import DebugLogger
 
 # ─────────────────────────────────────────────────────────────────────
-# TestScene
+# Game Scene -> patron fase ( se le pasa el nombre del .tmx y se carga todo)
 # ─────────────────────────────────────────────────────────────────────
-class TestScene(abstract.Scene):
-    def __init__(self, game, name=None):
-        super().__init__(game, name)
+class GameScene(abstract.Scene):
+    def __init__(self, game, map, name=None):
+        super().__init__(game, name or map)
+        self.map_name = map
         self.groups = {
             "map_back":  pygame.sprite.Group(),           # capas Z <= 0 (suelo, paredes)
             "entities":  pygame.sprite.LayeredUpdates(),  # todas las entidades, Y-sorted por layer
@@ -28,7 +29,7 @@ class TestScene(abstract.Scene):
         self.room_data   = [] # lista de (bbox_world, mask_surface) pre-computados por room
         self.player = None
         self.light_screen = self.game.screen.copy()
-        self.map    = objects.tileMap("lvl1_tutorial",
+        self.map    = objects.tileMap(map,
                                       back_group=self.groups["map_back"],
                                       front_group=self.groups["map_front"])
         self.camera = objects.Camera()
@@ -71,7 +72,6 @@ class TestScene(abstract.Scene):
             room_sprite.rect = room.move(-cam.x, -cam.y)
             #Actualizar entidades
             for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
-                print("  SPRITE RECT:", sprite.rect, "parent:", type(sprite.parent).__name__)
                 ent = sprite.parent
                 ent_id = id(ent)
                 if ent_id not in updated:
@@ -146,7 +146,7 @@ class TestScene(abstract.Scene):
         entity_classes = {
             "Switch": Switch, "Door": Door,
             "Player": player.Player, "Shadow": Shadow,
-            "Portal": Portal,
+            "Portal": Portal, "ScenePortal": ScenePortal,
             "Light": LightObject,
             "Key": Key
         }
@@ -158,7 +158,6 @@ class TestScene(abstract.Scene):
                                 obj.name or str(obj.id), obj.x, obj.y)
                 continue
             obj_type = obj.type.strip()
-            print("OBJ:", obj.name, obj.type)
             if obj_type == "Room":
                 rect = pygame.Rect(obj.x * scale, obj.y * scale,
                                    obj.width * scale, obj.height * scale)
@@ -204,6 +203,8 @@ class TestScene(abstract.Scene):
         for ent in temp.values():
             if hasattr(ent, "resolve_target"):
                 ent.resolve_target(temp)
+            if hasattr(ent, "setup_scene"):
+                ent.setup_scene(self)
             if isinstance(ent, Key):
              ent.player = self.player
             if not hasattr(ent, "target") or not ent.target:
@@ -234,7 +235,7 @@ class MainMenu(abstract.Scene):
 
     def update(self, dt):
         self.sprites.update(dt)
-        if self.play.update(dt):     self.game.changeScene(TestScene(self.game))
+        if self.play.update(dt):     self.game.changeScene(GameScene(self.game, SaveManager.get_current_map()))
         if self.settings.update(dt): self.game.switchScene(SettingsScene(self.game))
         if self.quit.update(dt):     self.game.quitGame()
 
@@ -254,13 +255,20 @@ class MainMenu(abstract.Scene):
 #   2. Añadir instancia a self.TABS en SettingsScene.__init__
 # ─────────────────────────────────────────────────────────────────────
 class _VideoTab:
-    RESOLUTIONS = [(1920, 1080), (2560, 1440)]  # añade resoluciones aquí
-    FPS_OPTIONS = [30, 60, 120, 144,  240, 360, 500, 1000]
+    COMMON_RESOLUTIONS = [
+        (1280,  720),   # 720p
+        (1366,  768),
+        (1600,  900),
+        (1920, 1080),   # 1080p
+        (2560, 1440),   # 1440p
+        (3840, 2160),   # 4K
+    ]
+    FPS_OPTIONS = [30, 60, 120, 144, 240, 360, 500, 1000]
 
     # Layout base (unidades sin escalar)
     _LX  = 20   # x etiquetas
-    _VX = 60 # x del valor
-    _BX  = 120   # x botón <
+    _VX  = 60   # x del valor
+    _BX  = 120  # x botón <
     _BX2 = 130  # x botón >
     _Y   = [60, 80, 100]   # y de cada fila: resolución, fullscreen, fps
 
@@ -268,8 +276,28 @@ class _VideoTab:
 
     def __init__(self):
         cfg = ResourceManager.getConfig()
+        rw = cfg.getint("engine", "width")
+        rh = cfg.getint("engine", "height")
+
+        # Auto-detectar resoluciones válidas para este monitor
+        self._desktop = pygame.display.get_desktop_sizes()[0]
+        self.RESOLUTIONS = [
+            r for r in self.COMMON_RESOLUTIONS
+            if r[0] <= self._desktop[0] and r[1] <= self._desktop[1]
+               and min(r[0] // rw, r[1] // rh) >= 1
+        ]
+        if not self.RESOLUTIONS:
+            self.RESOLUTIONS = [(rw, rh)]
+
+        # Buscar resolución actual — sin fallback silencioso
         cur = (cfg.getint("video", "xres"), cfg.getint("video", "yres"))
-        self._res_i = next((i for i, r in enumerate(self.RESOLUTIONS) if r == cur), 0)
+        try:
+            self._res_i = self.RESOLUTIONS.index(cur)
+        except ValueError:
+            self._res_i = min(range(len(self.RESOLUTIONS)),
+                              key=lambda i: abs(self.RESOLUTIONS[i][0] * self.RESOLUTIONS[i][1]
+                                                - cur[0] * cur[1]))
+
         self._fps_i = next((i for i, v in enumerate(self.FPS_OPTIONS)
                             if v == cfg.getint("video", "maxfps")), 0)
         self._fs = cfg.getboolean("video", "fullscreen")
@@ -281,8 +309,11 @@ class _VideoTab:
         self.fps_prev = objects.TextButton("<",      self._BX,  y[2])
         self.fps_next = objects.TextButton(">",      self._BX2, y[2])
 
-        self.sprites = pygame.sprite.Group(
+        # Grupo separado para botones de resolución (se ocultan en fullscreen)
+        self._res_sprites = pygame.sprite.Group(
             self.res_prev.graphic, self.res_next.graphic,
+        )
+        self.sprites = pygame.sprite.Group(
             self.fs_btn.graphic,
             self.fps_prev.graphic, self.fps_next.graphic,
         )
@@ -296,15 +327,21 @@ class _VideoTab:
 
     def update(self, dt):
         self.sprites.update(dt)
-        if self.res_prev.update(dt): self._res_i = (self._res_i - 1) % len(self.RESOLUTIONS)
-        if self.res_next.update(dt): self._res_i = (self._res_i + 1) % len(self.RESOLUTIONS)
+        if not self._fs:
+            self._res_sprites.update(dt)
+            if self.res_prev.update(dt): self._res_i = (self._res_i - 1) % len(self.RESOLUTIONS)
+            if self.res_next.update(dt): self._res_i = (self._res_i + 1) % len(self.RESOLUTIONS)
         if self.fs_btn.update(dt):   self._fs    = not self._fs
         if self.fps_prev.update(dt): self._fps_i = (self._fps_i - 1) % len(self.FPS_OPTIONS)
         if self.fps_next.update(dt): self._fps_i = (self._fps_i + 1) % len(self.FPS_OPTIONS)
 
     def draw(self, screen, s, font):
-        rows = [             
-            ("Resolucion", self._Y[0], f"{self.resolution[0]}x{self.resolution[1]}"),
+        if self._fs:
+            res_text = f"{self._desktop[0]}x{self._desktop[1]} (nativa)"
+        else:
+            res_text = f"{self.resolution[0]}x{self.resolution[1]}"
+        rows = [
+            ("Resolucion", self._Y[0], res_text),
             ("Fullscreen", self._Y[1], "On" if self._fs else "Off"),
             ("FPS max",    self._Y[2], str(self.maxfps)),
         ]
@@ -313,6 +350,8 @@ class _VideoTab:
             vs = font.render(val,   False, (40, 40, 40)); vs.set_colorkey(vs.get_at((0, 0)))
             screen.blit(ls, (self._LX * s, y * s))
             screen.blit(vs, (self._VX * s + 12 * s, y * s))
+        if not self._fs:
+            self._res_sprites.draw(screen)
         self.sprites.draw(screen)
 
 
@@ -346,19 +385,24 @@ class SettingsScene(abstract.Scene):
     def _apply(self):
         cfg = ResourceManager.getConfig()
         vid = self._video
+        rw  = cfg.getint("engine", "width")
+        rh  = cfg.getint("engine", "height")
+
         if vid.fullscreen:
-            info = pygame.display.Info()
-            w, h = info.current_w, info.current_h
+            w, h = pygame.display.get_desktop_sizes()[0]
         else:
             w, h = vid.resolution
-        rw = cfg.getint("engine", "width")
-        rh = cfg.getint("engine", "height")
-        # Guardar como pendiente: no se aplica al config live hasta apply_pending() en exit
-        ResourceManager.set_pending("video", "xres",       str(w))
-        ResourceManager.set_pending("video", "yres",       str(h))
-        ResourceManager.set_pending("video", "fullscreen", "1" if vid.fullscreen else "0")
-        ResourceManager.set_pending("video", "maxfps",     str(vid.maxfps))
-        ResourceManager.set_pending("video", "scale",      str(min(w // rw, h // rh)))
+
+        scale = max(1, min(w // rw, h // rh))
+
+        # Guardar todo al config y a disco — se aplica al reiniciar
+        cfg.set("video", "xres",       str(w))
+        cfg.set("video", "yres",       str(h))
+        cfg.set("video", "fullscreen", "1" if vid.fullscreen else "0")
+        cfg.set("video", "maxfps",     str(vid.maxfps))
+        cfg.set("video", "scale",      str(scale))
+        with open("config.ini", "w", encoding="utf-8") as f:
+            cfg.write(f)
         self._pending = True
 
     def update(self, dt):
