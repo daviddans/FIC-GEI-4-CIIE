@@ -3836,7 +3836,7 @@
   <object id="23" name="puerta_casa_ext" type="Portal" x="1216.37" y="597.925" width="29.6398" height="31.3497"/>
   <object id="28" name="salida_ciudad" type="Portal" x="971.834" y="29.4171" width="69.0975" height="67.6538">
    <properties>
-    <property name="target" value="entrada_ruinas"/>
+    <property name="target" value="entrada_ruinas  "/>
    </properties>
   </object>
   <object id="34" name="entrada_ruinas" type="Portal" x="2266.94" y="733.422" width="144.26" height="101.831">
