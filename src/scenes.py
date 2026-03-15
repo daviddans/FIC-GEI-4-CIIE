@@ -12,12 +12,14 @@ from components import ChasePlayer, Health
 from healthHUD import HealthHUD
 from debugLogger import DebugLogger
 
+
 # ─────────────────────────────────────────────────────────────────────
 # TestScene
 # ─────────────────────────────────────────────────────────────────────
-class TestScene(abstract.Scene):
-    def __init__(self, game, name=None):
-        super().__init__(game, name)
+class GameScene(abstract.Scene):
+    def __init__(self, game, map_name=None):
+        super().__init__(game, map_name)
+        self.map_name = map_name
         self.groups = {
             "map_back": pygame.sprite.Group(),  # capas Z <= 0 (suelo, paredes)
             "entities": pygame.sprite.LayeredUpdates(),  # todas las entidades, Y-sorted por layer
@@ -25,18 +27,18 @@ class TestScene(abstract.Scene):
             "lights": pygame.sprite.Group(),  # todas las luces
             "hud": pygame.sprite.Group(),  # HUD y efectos de pantalla
         }
-        self.room_groups     = [] # lista de listas: sub-rects agrupados por nombre (para _active_rooms)
-        self.room_data       = [] # lista de (bbox_world, mask_surface) pre-computados por room
-        self.room_luminosity = [] # luminosidad ambiental 0-255 por room group
+        self.room_groups = []  # lista de listas: sub-rects agrupados por nombre (para _active_rooms)
+        self.room_data = []  # lista de (bbox_world, mask_surface) pre-computados por room
+        self.room_luminosity = []  # luminosidad ambiental 0-255 por room group
         self.player = None
         self.light_screen = self.game.screen.copy()
-        self.map    = objects.tileMap(map,
-                                      back_group=self.groups["map_back"],
-                                      front_group=self.groups["map_front"])
+        self.map = objects.tileMap(map_name,
+                                   back_group=self.groups["map_back"],
+                                   front_group=self.groups["map_front"])
         self.camera = objects.Camera()
         # Solo registrar grupos del mundo (HUD no se mueve con la cámara)
-        for name in ("map_back", "entities", "map_front", "lights"):
-            self.camera.addGroup(self.groups[name])
+        for group_name in ("map_back", "entities", "map_front", "lights"):
+            self.camera.addGroup(self.groups[group_name])
         self._load_from_tiled()
         if self.player:
             self.camera.setReference(self.player)
@@ -68,19 +70,46 @@ class TestScene(abstract.Scene):
         return int(sum(active) / len(active)) if active else 25
 
     def update(self, dt):
-     if not self.player:
-        return
+        if not self.player:
+            return
 
-        # 1. Player siempre se actualiza
+            # 1. Player siempre se actualiza
+            self.player.update(dt, map=self.map.reachable)
+
+            # 2. Filtrar entidades activas en rooms visibles (spritecollide C-level)
+            updated = {id(self.player)}
+            cam = self.camera.pos
+            for room in self._active_rooms():
+                room_sprite = pygame.sprite.Sprite()
+                room_sprite.rect = room.move(-cam.x, -cam.y)
+                # Actualizar entidades
+                for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
+                    ent = sprite.parent
+                    ent_id = id(ent)
+                    if ent_id not in updated:
+                        updated.add(ent_id)
+                        if ent.pos.colliderect(self.player.pos):
+                            ent.on_collision(self.player)
+                        ent.update(dt)
+        # 1. Player y shadows siempre se actualizan
         self.player.update(dt, map=self.map.reachable)
-
-        # 2. Filtrar entidades activas en rooms visibles (spritecollide C-level)
         updated = {id(self.player)}
+
+        for sprite in list(self.groups["entities"].sprites()):
+            if hasattr(sprite, 'parent') and isinstance(sprite.parent, Shadow):
+                shadow = sprite.parent
+                shadow_id = id(shadow)
+                if shadow_id not in updated:
+                    updated.add(shadow_id)
+                    if shadow.pos.colliderect(self.player.pos):
+                        shadow.on_collision(self.player)
+                    shadow.update(dt, self.player.pos.topleft, map=self.map.reachable)
+
+        # 2. Filtrar entidades activas en rooms visibles
         cam = self.camera.pos
         for room in self._active_rooms():
             room_sprite = pygame.sprite.Sprite()
             room_sprite.rect = room.move(-cam.x, -cam.y)
-            # Actualizar entidades
             for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
                 ent = sprite.parent
                 ent_id = id(ent)
@@ -88,47 +117,20 @@ class TestScene(abstract.Scene):
                     updated.add(ent_id)
                     if ent.pos.colliderect(self.player.pos):
                         ent.on_collision(self.player)
-                    ent.update(dt)
-    # 1. Player y shadows siempre se actualizan
-     self.player.update(dt, map=self.map.reachable)
-     updated = {id(self.player)}
+                    if isinstance(ent, Key):
+                        ent.update(dt, self.player.pos.topleft)
+                    else:
+                        ent.update(dt)
 
-     for sprite in list(self.groups["entities"].sprites()):
-        if hasattr(sprite, 'parent') and isinstance(sprite.parent, Shadow):
-            shadow = sprite.parent
-            shadow_id = id(shadow)
-            if shadow_id not in updated:
-                updated.add(shadow_id)
-                if shadow.pos.colliderect(self.player.pos):
-                    shadow.on_collision(self.player)
-                shadow.update(dt, self.player.pos.topleft, map=self.map.reachable)
+        # 3. Update gráfico
+        for g in self.groups.values():
+            g.update(dt)
 
-    # 2. Filtrar entidades activas en rooms visibles
-     cam = self.camera.pos
-     for room in self._active_rooms():
-        room_sprite = pygame.sprite.Sprite()
-        room_sprite.rect = room.move(-cam.x, -cam.y)
-        for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
-            ent = sprite.parent
-            ent_id = id(ent)
-            if ent_id not in updated:
-                updated.add(ent_id)
-                if ent.pos.colliderect(self.player.pos):
-                    ent.on_collision(self.player)
-                if isinstance(ent, Key):
-                    ent.update(dt, self.player.pos.topleft)
-                else:
-                    ent.update(dt)
+        if self.player.health.is_dead:
+            self.game.switchScene(GameOverScene(self.game))
+            return
 
-    # 3. Update gráfico
-     for g in self.groups.values():
-        g.update(dt)
-
-     if self.player.health.is_dead:
-         self.game.switchScene(GameOverScene(self.game))
-         return
-
-     self.camera.update(dt)
+        self.camera.update(dt)
 
     def draw(self):
         screen_rect = self.game.screen.get_rect()
@@ -138,7 +140,7 @@ class TestScene(abstract.Scene):
         for sprite in self.groups["map_back"].sprites():
             if screen_rect.colliderect(sprite.rect):
                 self.game.screen.blit(sprite.image, sprite.rect)
-        
+
         # 2. Entidades: Y-sorted automáticamente por LayeredUpdates
         self.groups["entities"].draw(self.game.screen)
 
@@ -189,7 +191,7 @@ class TestScene(abstract.Scene):
             "Table": table.Table,
             "Table": table.Table,
         }
-        room_buckets            = {}  # nombre -> [Rect, ...], para merge posterior
+        room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
         room_luminosity_buckets = {}  # nombre -> int (0-255)
         temp = {}
         for obj in self.map.tmx.objects:
@@ -233,9 +235,9 @@ class TestScene(abstract.Scene):
                 self.player = ent
 
         # Registrar rooms y pre-computar máscara por room (una sola vez)
-        for name, rects in room_buckets.items():
+        for room_name, rects in room_buckets.items():
             self.room_groups.append(rects)
-            self.room_luminosity.append(room_luminosity_buckets.get(name, 25))
+            self.room_luminosity.append(room_luminosity_buckets.get(room_name, 25))
             bbox = rects[0].unionall(rects[1:])
             mask = pygame.Surface(bbox.size, pygame.SRCALPHA)
             mask.fill((0, 0, 0, 0))
@@ -243,7 +245,7 @@ class TestScene(abstract.Scene):
                 mask.fill((255, 255, 255, 255), r.move(-bbox.x, -bbox.y))
             self.room_data.append((bbox, mask))
             DebugLogger.log("Room final: '%s' %d parte(s) -> %s",
-                            name, len(rects), [str(r) for r in rects])
+                            room_name, len(rects), [str(r) for r in rects])
 
         # Enlazar observadores y resolver targets (una sola pasada)
         for ent in temp.values():
@@ -252,13 +254,13 @@ class TestScene(abstract.Scene):
             if hasattr(ent, "setup_scene"):
                 ent.setup_scene(self)
             if isinstance(ent, Key):
-             ent.player = self.player
+                ent.player = self.player
             if not hasattr(ent, "target") or not ent.target:
                 continue
             names = str(ent.target).split(",")
             ent.target_objects = []
-            for name in names:
-                r = temp.get(name.strip())
+            for target_name in names:
+                r = temp.get(target_name.strip())
                 if r:
                     ent.add_observer(r)
                     ent.target_objects.append(r)
@@ -277,11 +279,11 @@ class TestScene(abstract.Scene):
 class MainMenu(abstract.Scene):
     def __init__(self, game, name="main_menu"):
         super().__init__(game, name)
-        self.audio    = audio.SoundManager()
-        self.play     = objects.TextButton("Play",     20, 50)
+        self.audio = audio.SoundManager()
+        self.play = objects.TextButton("Play", 20, 50)
         self.settings = objects.TextButton("Settings", 20, 70)
-        self.quit     = objects.TextButton("Quit",     20, 90)
-        self.sprites  = pygame.sprite.Group(
+        self.quit = objects.TextButton("Quit", 20, 90)
+        self.sprites = pygame.sprite.Group(
             self.play.graphic, self.settings.graphic, self.quit.graphic)
 
     def update(self, dt):
@@ -307,19 +309,19 @@ class MainMenu(abstract.Scene):
 # ─────────────────────────────────────────────────────────────────────
 class _VideoTab:
     COMMON_RESOLUTIONS = [
-        (1280,  720),   # 720p
-        (1366,  768),
-        (1600,  900),
-        (1920, 1080),   # 1080p
-        (2560, 1440),   # 1440p
-        (3840, 2160),   # 4K
+        (1280, 720),  # 720p
+        (1366, 768),
+        (1600, 900),
+        (1920, 1080),  # 1080p
+        (2560, 1440),  # 1440p
+        (3840, 2160),  # 4K
     ]
     FPS_OPTIONS = [30, 60, 120, 144, 240, 360, 500, 1000]
 
     # Layout base (unidades sin escalar)
-    _LX  = 20   # x etiquetas
-    _VX = 60 # x del valor
-    _BX  = 120   # x botón <
+    _LX = 20  # x etiquetas
+    _VX = 60  # x del valor
+    _BX = 120  # x botón <
     _BX2 = 130  # x botón >
     _Y = [60, 80, 100]  # y de cada fila: resolución, fullscreen, fps
 
@@ -355,11 +357,11 @@ class _VideoTab:
         self._fs = cfg.getboolean("video", "fullscreen")
 
         y = self._Y
-        self.res_prev = objects.TextButton("<",      self._BX,  y[0])
-        self.res_next = objects.TextButton(">",      self._BX2, y[0])
-        self.fs_btn   = objects.TextButton("Toggle", self._BX,  y[1])
-        self.fps_prev = objects.TextButton("<",      self._BX,  y[2])
-        self.fps_next = objects.TextButton(">",      self._BX2, y[2])
+        self.res_prev = objects.TextButton("<", self._BX, y[0])
+        self.res_next = objects.TextButton(">", self._BX2, y[0])
+        self.fs_btn = objects.TextButton("Toggle", self._BX, y[1])
+        self.fps_prev = objects.TextButton("<", self._BX, y[2])
+        self.fps_next = objects.TextButton(">", self._BX2, y[2])
 
         # Grupo separado para botones de resolución (se ocultan en fullscreen)
         self._res_sprites = pygame.sprite.Group(
@@ -371,11 +373,16 @@ class _VideoTab:
         )
 
     @property
-    def resolution(self): return self.RESOLUTIONS[self._res_i]
+    def resolution(self):
+        return self.RESOLUTIONS[self._res_i]
+
     @property
-    def fullscreen(self): return self._fs
+    def fullscreen(self):
+        return self._fs
+
     @property
-    def maxfps(self):     return self.FPS_OPTIONS[self._fps_i]
+    def maxfps(self):
+        return self.FPS_OPTIONS[self._fps_i]
 
     def update(self, dt):
         self.sprites.update(dt)
@@ -383,7 +390,7 @@ class _VideoTab:
             self._res_sprites.update(dt)
             if self.res_prev.update(dt): self._res_i = (self._res_i - 1) % len(self.RESOLUTIONS)
             if self.res_next.update(dt): self._res_i = (self._res_i + 1) % len(self.RESOLUTIONS)
-        if self.fs_btn.update(dt):   self._fs    = not self._fs
+        if self.fs_btn.update(dt):   self._fs = not self._fs
         if self.fps_prev.update(dt): self._fps_i = (self._fps_i - 1) % len(self.FPS_OPTIONS)
         if self.fps_next.update(dt): self._fps_i = (self._fps_i + 1) % len(self.FPS_OPTIONS)
 
@@ -398,8 +405,10 @@ class _VideoTab:
             ("FPS max", self._Y[2], str(self.maxfps)),
         ]
         for label, y, val in rows:
-            ls = font.render(label, False, (80, 80, 80)); ls.set_colorkey(ls.get_at((0, 0)))
-            vs = font.render(val,   False, (40, 40, 40)); vs.set_colorkey(vs.get_at((0, 0)))
+            ls = font.render(label, False, (80, 80, 80));
+            ls.set_colorkey(ls.get_at((0, 0)))
+            vs = font.render(val, False, (40, 40, 40));
+            vs.set_colorkey(vs.get_at((0, 0)))
             screen.blit(ls, (self._LX * s, y * s))
             screen.blit(vs, (self._VX * s + 12 * s, y * s))
         if not self._fs:
@@ -414,8 +423,8 @@ class SettingsScene(abstract.Scene):
         self._s = ResourceManager.getConfig().getint("video", "scale")
         s = self._s
 
-        self._video  = _VideoTab()
-        self.TABS    = {"Video": self._video}
+        self._video = _VideoTab()
+        self.TABS = {"Video": self._video}
         self._active = "Video"
         self._pending = False
 
@@ -425,7 +434,7 @@ class SettingsScene(abstract.Scene):
             for i, k in enumerate(self.TABS)
         }
         self.apply = objects.TextButton("Apply", 15, 200)
-        self.back  = objects.TextButton("Back",  15, 220)
+        self.back = objects.TextButton("Back", 15, 220)
 
         self._static_sprites = pygame.sprite.Group(
             *[b.graphic for b in self._tab_btns.values()],
@@ -437,8 +446,8 @@ class SettingsScene(abstract.Scene):
     def _apply(self):
         cfg = ResourceManager.getConfig()
         vid = self._video
-        rw  = cfg.getint("engine", "width")
-        rh  = cfg.getint("engine", "height")
+        rw = cfg.getint("engine", "width")
+        rh = cfg.getint("engine", "height")
 
         if vid.fullscreen:
             w, h = pygame.display.get_desktop_sizes()[0]
@@ -448,11 +457,11 @@ class SettingsScene(abstract.Scene):
         scale = max(1, min(w // rw, h // rh))
 
         # Guardar todo al config y a disco — se aplica al reiniciar
-        cfg.set("video", "xres",       str(w))
-        cfg.set("video", "yres",       str(h))
+        cfg.set("video", "xres", str(w))
+        cfg.set("video", "yres", str(h))
         cfg.set("video", "fullscreen", "1" if vid.fullscreen else "0")
-        cfg.set("video", "maxfps",     str(vid.maxfps))
-        cfg.set("video", "scale",      str(scale))
+        cfg.set("video", "maxfps", str(vid.maxfps))
+        cfg.set("video", "scale", str(scale))
         with open("config.ini", "w", encoding="utf-8") as f:
             cfg.write(f)
         self._pending = True
@@ -491,11 +500,11 @@ class SettingsScene(abstract.Scene):
 class PauseScene(abstract.Scene):
     def __init__(self, game, name="pause"):
         super().__init__(game, name)
-        self._parent  = game.sceneStack[-1] if game.sceneStack else None
-        self.resume   = objects.TextButton("Resume",   20,  50)
-        self.settings = objects.TextButton("Settings", 20,  70)
-        self.quit     = objects.TextButton("Quit",     20,  90)
-        self.sprites  = pygame.sprite.Group(
+        self._parent = game.sceneStack[-1] if game.sceneStack else None
+        self.resume = objects.TextButton("Resume", 20, 50)
+        self.settings = objects.TextButton("Settings", 20, 70)
+        self.quit = objects.TextButton("Quit", 20, 90)
+        self.sprites = pygame.sprite.Group(
             self.resume.graphic, self.settings.graphic, self.quit.graphic)
 
     def update(self, dt):
@@ -517,6 +526,7 @@ class PauseScene(abstract.Scene):
         self.game.screen.blit(ov, (0, 0))
         self.sprites.draw(self.game.screen)
 
+
 # ─────────────────────────────────────────────────────────────────────
 # Game Over Scene
 # ─────────────────────────────────────────────────────────────────────
@@ -525,21 +535,21 @@ class GameOverScene(abstract.Scene):
     def __init__(self, game, name="game_over"):
         super().__init__(game, name)
         self._parent = game.sceneStack[-1] if game.sceneStack else None
-        
+
         # Botones: Uno para reintentar y otro para salir
         self.retry = objects.TextButton("Retry", 20, 60)
-        self.quit  = objects.TextButton("Main Menu", 20, 80)
-        
+        self.quit = objects.TextButton("Main Menu", 20, 80)
+
         self.sprites = pygame.sprite.Group(self.retry.graphic, self.quit.graphic)
         self.font_big = ResourceManager.getFont("CaskaydiaCoveNerdFont-Regular.ttf", 30)
 
     def update(self, dt):
         self.sprites.update(dt)
-      
-        if self.retry.update(dt): 
-           self.game.changeScene(TestScene(self.game))
-       
-        if self.quit.update(dt): 
+
+        if self.retry.update(dt):
+            self.game.changeScene(TestScene(self.game))
+
+        if self.quit.update(dt):
             self.game.changeScene(MainMenu(self.game))
 
     def events(self, events):
@@ -547,16 +557,15 @@ class GameOverScene(abstract.Scene):
             if e.type == pygame.QUIT: self.game.quitGame()
 
     def draw(self):
-        
+
         if self._parent: self._parent.draw()
-        
+
         # Capa roja para dar efecto de game over
         ov = pygame.Surface(self.game.screen.get_size(), pygame.SRCALPHA)
-        ov.fill((150, 0, 0, 150)) # Rojo oscuro
+        ov.fill((150, 0, 0, 150))  # Rojo oscuro
         self.game.screen.blit(ov, (0, 0))
-        
-        
+
         text = self.font_big.render("GAME OVER", True, (255, 255, 255))
         self.game.screen.blit(text, (20, 20))
-        
+
         self.sprites.draw(self.game.screen)
