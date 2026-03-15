@@ -6,6 +6,7 @@ import utils
 import objects
 from resourceManager import ResourceManager
 from debugLogger import DebugLogger
+from lantern import Lantern
 
 class Player(abstract.Object):
     def __init__(self, pos=(0,0), speed=0.1, graphic_group=None, light_group=None):
@@ -13,6 +14,7 @@ class Player(abstract.Object):
         self.atlas = ResourceManager.getAtlas("player-base")
         self.graphic_group = graphic_group
         self.light_group = light_group  
+        self.lantern = Lantern(self, graphic_group, light_group)
 
         self.graphic = components.Graphic(self, self.atlas)
         self.graphic.add(self.graphic_group)

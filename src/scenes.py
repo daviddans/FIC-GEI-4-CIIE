@@ -62,6 +62,8 @@ class TestScene(abstract.Scene):
 
         # 1. Player siempre se actualiza
         self.player.update(dt, map=self.map.reachable)
+        if hasattr(self.player, 'lantern'):
+         self.player.lantern.update(dt, self.player.pos.center)
 
         # 2. Filtrar entidades activas en rooms visibles (spritecollide C-level)
         updated = {id(self.player)}
