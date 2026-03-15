@@ -72,8 +72,7 @@ class tileMap(abstract.Object):
                 continue
             if layer.name and layer.name.lower() == "reachable":
                 for x, y, gid in layer:
-                    props = self.tmx.get_tile_properties_by_gid(gid)
-                    if props and props.get("reachable"):
+                    if gid:
                         self.reachable[y][x] = 1
                 continue
             props_lower = {k.lower(): v for k, v in (layer.properties or {}).items()}
@@ -90,9 +89,6 @@ class tileMap(abstract.Object):
             tile_count = 0
             for layer in layer_list:
                 for x, y, gid in layer:
-                    props = self.tmx.get_tile_properties_by_gid(gid)
-                    if props and props.get("reachable"):
-                        self.reachable[y][x] = 1
                     tile = self.tmx.get_tile_image_by_gid(gid)
                     if not tile:
                         continue
@@ -136,17 +132,20 @@ class LightObject(abstract.Object):
     """Fuente de luz estática colocada desde Tiled (type='Light').
     Propiedades Tiled: atlas (str), offset_x (int), offset_y (int).
     """
-    def __init__(self, pos=(0, 0), light_group=None,
-                 atlas="light1", **kwargs):
-        super().__init__("light_object", pos)
+    def __init__(self, pos=(0, 0), name="light", light_group=None, **kwargs):
+        super().__init__(name, pos)
+        atlas    = kwargs.get("atlas", "light1")
+        offset_x = int(kwargs.get("offset_x", -128))
+        offset_y = int(kwargs.get("offset_y", -128))
         self.light = components.Graphic(
             self, ResourceManager.getAtlas(atlas),
-            offset=(-128, -128), primary=False
+            offset=(offset_x, offset_y),
+            name=name
         )
-        if light_group:
-            self.light.add(light_group)
+        self.light.add(light_group)
         self.light.addState("on", [0])
         self.light.setState("on")
+        DebugLogger.log("Light init: name=%s atlas=%s offset=(%d,%d)", name, atlas, offset_x, offset_y)
 
     def update(self, dt):
         self.light.update(dt)
@@ -252,35 +251,36 @@ class TextInput(abstract.Object):
 
 
 class Portal(abstract.Object):
-    def __init__(self, pos, size=(32,32), name=None, **kwargs):
-        super().__init__("portal", pos)
+    COOLDOWN_MS = 1000
 
+    def __init__(self, pos, size=(32,32), name=None, graphic_group=None, **kwargs):
+        super().__init__(name or "portal", pos)
         scale = ResourceManager.getConfig().getint("video", "scale")
         self.pos.size = (size[0]*scale, size[1]*scale)
-
-        self.name = name
         self.target_name = kwargs.get("target", "").replace('"','').strip()
         self.cooldown = 0
+        self._target = None
+        # Sprite invisible — necesario para participar en el sistema de rooms/colisiones
+        self.graphic = components.Graphic(self, None)
+        self.graphic.image = pygame.Surface(self.pos.size, pygame.SRCALPHA)
+        self.graphic.rect = self.pos.copy()
+        if graphic_group:
+            self.graphic.add(graphic_group)
 
-    def update(self, dt, player_pos):
+    def resolve_target(self, all_objects):
+        self._target = all_objects.get(self.target_name)
+
+    def on_collision(self, other):
+        if self.cooldown > 0 or not self._target:
+            return
+        other.pos.center = self._target.pos.center
+        other.pos.y += self._target.pos.h + 10
+        if hasattr(other, "movement"):
+            other.movement._x = float(other.pos.x)
+            other.movement._y = float(other.pos.y)
+        self.cooldown = self.COOLDOWN_MS
+        self._target.cooldown = self.COOLDOWN_MS
+
+    def update(self, dt):
         if self.cooldown > 0:
             self.cooldown -= dt
-        return None
-
-    def teleport_player(self, player, all_objects):
-
-     if not self.target_name:
-        return
-
-     target_obj = all_objects.get(self.target_name)
-
-     if target_obj:
-
-        print("TELEPORTANDO A:", self.target_name)
-
-        player.pos.center = target_obj.pos.center
-        player.pos.y += target_obj.pos.h + 10
-
-        if hasattr(player, "movement"):
-            player.movement._x = float(player.pos.x)
-            player.movement._y = float(player.pos.y)

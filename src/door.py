@@ -5,18 +5,11 @@ import pygame
 from debugLogger import DebugLogger
 
 class Door(abstract.Object, abstract.Observer):
-    def __init__(self, pos, graphic_group=None, light_group=None, **kwargs):
-        super().__init__("door", pos)
-        
-        # Aseguramos que is_locked sea booleano
-        is_locked_val = kwargs.get("is_locked", "True")
-        self.is_locked = str(is_locked_val).lower() == "true"
-        
+    def __init__(self, pos, name="door", graphic_group=None, light_group=None, **kwargs):
+        super().__init__(name, pos)
+
+        self.is_locked = kwargs.get("is_locked", "true").lower() == "true"
         self.is_open = False
-        self.key_required = kwargs.get("key_required", None) 
-        
-        # Rango de interacción (si no viene de Tiled, 60 píxeles)
-        self.proximity_range = int(kwargs.get("proximity_range", 200))
         
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas)
@@ -32,6 +25,7 @@ class Door(abstract.Object, abstract.Observer):
             self.graphic.setState("locked")
         else:
             self.graphic.setState("unlocked")
+        DebugLogger.log("Door init: name=%s pos=%s is_locked=%s", name, pos, self.is_locked)
 
     def on_notify(self, entity, event):
         if event == 'SWITCH_ON' or event == 'KEY_PICKED':
@@ -50,39 +44,18 @@ class Door(abstract.Object, abstract.Observer):
         self.is_open = False
         self.graphic.setState("locked")
 
-    def update(self, dt, player_pos, player_keys=[]):
-     self.graphic.update(dt)
+    def on_collision(self, other):
+        if not self.is_locked and not self.is_open:
+            self.open_door()
 
-     p_vec = pygame.Vector2(player_pos)
-     d_vec = pygame.Vector2(self.pos.center)
-     distance = d_vec.distance_to(p_vec)
-
-     keys = pygame.key.get_pressed()
-
-     if distance < self.proximity_range:
-        if keys[pygame.K_o] and not self.is_open:
-            if self.is_locked:
-                if self.key_required and self.key_required in player_keys:
-                    player_keys.remove(self.key_required)
-                    self.unlock()
-                    self.open_door()
-                elif not self.key_required:
-                    self.unlock()
-                    self.open_door()
-                else:
-                    print(f"Necesitas la llave: {self.key_required}")
-            else:
-                self.open_door()
-     else:
-        if self.is_open:
-            self.close_door()
+    def update(self, dt):
+        self.graphic.update(dt)
 
     def open_door(self):
         self.is_open = True
-        self.graphic.animate = True 
-        self.graphic.loop = False
+        self.graphic.animate = True
         self.graphic.setState("opening")
-        print("Abriendo puerta...")
+        DebugLogger.log("Puerta abierta por proximidad.")
 
     def close_door(self):
         self.is_open = False

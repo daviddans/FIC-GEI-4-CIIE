@@ -4,20 +4,10 @@ from resourceManager import ResourceManager
 from debugLogger import DebugLogger
 
 class Scene:
-    def __init__(self, game, name="unamed"):
+    def __init__(self, game, name="unnamed"):
         self.game = game
         self.name = name
-        self.objects = []
         DebugLogger.log("\n---Scene init: '%s'---\n", name)
-    
-    def addObject(self, obj):
-        self.objects.append(obj)
-
-    def getObjects(self):
-        return self.objects
-
-    def removeObject(self, obj):
-        self.objects.remove(obj)
 
     def update(self, dt):
         raise NotImplementedError("Scene: " + self.name + ". Update method not found, must be given an implementation.\n")
@@ -29,8 +19,9 @@ class Scene:
         raise NotImplementedError("Scene: " + self.name + ". Draw method not found, must be given an implementation.\n")
 
 class Object:
-    def __init__(self, name="unamed", pos = (0,0)):
-        scale = ResourceManager().getConfig().getint("video", "scale")
+    def __init__(self, name="unnamed", pos = (0,0)):
+        DebugLogger.log("Object init: '%s'", name)
+        scale = ResourceManager.getConfig().getint("video", "scale")
         self.name = name
         self.pos = pygame.rect.Rect((pos[0] * scale , pos[1] * scale), (0,0))
   
@@ -40,8 +31,8 @@ class Object:
     def events(self, events):
         raise NotImplementedError("Object: " + self.name + ". Events method not found, must be given an implementation.\n")
     
-    def on_collision(self, subject):
-        raise NotImplementedError(f"Object:  {self.name} . on_collision method not found, must be given an implementation. Collided with: {subject.names}\n")
+    def on_collision(self, _other):
+        pass
     
     #para que las entidades guarden sus datos para el json de fase
     def serialize(self):
