@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="100" height="100" tilewidth="16" tileheight="16" infinite="0" nextlayerid="11" nextobjectid="24">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="100" height="100" tilewidth="16" tileheight="16" infinite="0" nextlayerid="11" nextobjectid="27">
  <tileset firstgid="1" name="tilemapLab01" tilewidth="16" tileheight="16" tilecount="1024" columns="32">
   <image source="tilemapLab01.png" width="512" height="512"/>
  </tileset>
@@ -18,7 +18,10 @@
   <object id="18" name="room4" type="Room" x="657.723" y="1094.7" width="141.656" height="79.087"/>
   <object id="20" name="room5" type="Room" x="399.439" y="1145.26" width="101.111" height="346.882"/>
   <object id="21" name="room6" type="Room" x="259.786" y="1121.73" width="138.152" height="135.649"/>
-  <object id="23" x="820.402" y="1170.79" width="315.847" height="67.5743"/>
+  <object id="23" name="room7" type="Room" x="820.402" y="1170.79" width="315.847" height="67.5743"/>
+  <object id="24" name="room7" type="Room" x="995.095" y="1231.86" width="142.657" height="54.56"/>
+  <object id="25" name="room8" type="Room" x="1024.13" y="1058.66" width="163.179" height="66.0727"/>
+  <object id="26" name="room7" type="Room" x="1066.67" y="1089.2" width="74.0815" height="125.138"/>
  </objectgroup>
  <layer id="2" name="reachable" width="100" height="100">
   <data encoding="csv">
