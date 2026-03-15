@@ -4,9 +4,10 @@ import components
 import pygame
 
 class Key(abstract.Object, abstract.Observable): 
-    def __init__(self, pos, **kwargs):
-        pygame.sprite.Sprite.__init__(self)
-        abstract.Object.__init__(self, "key", pos)
+    def __init__(self, pos, graphic_group=None,light_group=None, **kwargs):
+        super().__init__("key", pos)
+        self.pos.size = (32, 32)
+        print("KEY POS:", self.pos)
     
         abstract.Observable.__init__(self)
         self.key_id = kwargs.get("key_id", "default_key")
@@ -14,30 +15,34 @@ class Key(abstract.Object, abstract.Observable):
         self.is_active = True
         self.atlas = ResourceManager.getAtlas("key")
         self.graphic = components.Graphic(self, self.atlas)
+        print(self.atlas)
+        self.graphic.add(graphic_group)
+        
         self.graphic.addState("idle", [0])
         self.graphic.setState("idle")
-        
+        print("KEY GRAPHIC GROUPS:", self.graphic.groups())
 
-    def update(self, dt, player): 
-        if not self.is_active: return
-        
+    def update(self, dt, player_pos):
+        if not self.is_active:
+            return
+            
         self.graphic.update(dt)
         
+        # Lógica de recogida con la tecla P
         keys = pygame.key.get_pressed()
         if keys[pygame.K_p]:
-            p_vec = pygame.Vector2(player.pos.topleft) 
-            k_vec = pygame.Vector2(self.pos.topleft) 
+            p_vec = pygame.Vector2(player_pos)
+            k_vec = pygame.Vector2(self.pos.topleft)
             
             if p_vec.distance_to(k_vec) < self.proximity_range:
-                self.interact(player)
+                self.interact() # Aquí la llave llama a Nix y se guarda
 
-    def interact(self, player):
-        print(f"Llave {self.key_id} guardada en el inventario.")
-       
-        player.keys.append(self.key_id)
-        
-     
-        if hasattr(self, 'graphic'):
-            for group in self.graphic.groups():
-                group.remove(self.graphic)
-        self.is_active = False
+    def interact(self):
+     if not hasattr(self, 'player') or self.player is None:
+        return
+     print(f"Llave {self.key_id} guardada.")
+     self.player.keys.append(self.key_id)
+     if hasattr(self, 'graphic'):
+        for group in self.graphic.groups():
+            group.remove(self.graphic)
+     self.is_active = False

@@ -5,7 +5,7 @@ from saveManager import SaveManager
 from switch import Switch
 from door import Door
 from objects import LightObject, Portal
-
+from key import Key
 from shadow import Shadow
 from components import ChasePlayer, Health
 from healthHUD import HealthHUD
@@ -28,7 +28,7 @@ class TestScene(abstract.Scene):
         self.room_data   = [] # lista de (bbox_world, mask_surface) pre-computados por room
         self.player = None
         self.light_screen = self.game.screen.copy()
-        self.map    = objects.tileMap("lvl1_tutorial",
+        self.map    = objects.tileMap("TestMap",
                                       back_group=self.groups["map_back"],
                                       front_group=self.groups["map_front"])
         self.camera = objects.Camera()
@@ -71,12 +71,21 @@ class TestScene(abstract.Scene):
         for room in self._active_rooms():
             room_sprite = pygame.sprite.Sprite()
             room_sprite.rect = room.move(-cam.x, -cam.y)
+            print("ROOM RECT SCREEN:", room_sprite.rect)
             for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
+                print("  SPRITE RECT:", sprite.rect, "parent:", type(sprite.parent).__name__)
                 ent = sprite.parent
                 ent_id = id(ent)
                 if ent_id not in updated:
                     updated.add(ent_id)
-                    ent.update(dt, self.player.pos.topleft)
+                    if isinstance(ent, Key):
+                        ent.player = self.player
+                        ent.update(dt, self.player.pos.topleft)
+                    if isinstance(ent, Door):
+                         ent.update(dt, self.player.pos.topleft, self.player.keys)
+                    else:
+                        # Para el resto (Shadow, Switch, etc.) mantenemos el update normal
+                         ent.update(dt, self.player.pos.topleft)
                 for portal in self.portals:
                  if portal.pos.collidepoint(self.player.pos.center):
                   portal.teleport_player(self.player, all_entities)
@@ -145,13 +154,14 @@ class TestScene(abstract.Scene):
         entity_classes = {
             "Switch": Switch, "Door": Door,
             "Player": player.Player, "Shadow": Shadow,
-            "Portal": Portal
+            "Portal": Portal, "Key": Key
         }
         self.portals = []
         room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
         temp = {}
         for obj in self.map.tmx.objects:
             obj_type = obj.type.strip()
+            print("OBJ:", obj.name, obj.type)
             if obj_type == "Room":
                 rect = pygame.Rect(obj.x * scale, obj.y * scale,
                                    obj.width * scale, obj.height * scale)
@@ -199,6 +209,8 @@ class TestScene(abstract.Scene):
             DebugLogger.log("Room final: '%s' %d parte(s) -> %s",
                             name, len(rects), [str(r) for r in rects])
         for ent in temp.values():
+            if isinstance(ent, Key):
+              ent.player = self.player
             if not hasattr(ent, "target") or not ent.target:
                 continue
             names = str(ent.target).split(",")
