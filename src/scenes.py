@@ -4,11 +4,12 @@ from resourceManager import ResourceManager
 from saveManager import SaveManager
 from switch import Switch
 from door import Door
-from objects import LightObject
-from audio import SoundManager
+from objects import LightObject, Portal
+from key import Key
 from shadow import Shadow
 from components import ChasePlayer, Health
 from healthHUD import HealthHUD
+from debugLogger import DebugLogger
 
 # ─────────────────────────────────────────────────────────────────────
 # TestScene
@@ -20,22 +21,23 @@ class TestScene(abstract.Scene):
         self.audio.load_music("level1.mp3")
         self.audio.play_music(loop=True)
         self.groups = {
-            "map_back":  pygame.sprite.Group(),  # capas Z <= 0 (suelo, paredes)
-            "static":    pygame.sprite.Group(),  # entidades sin movimiento (llaves, puertas)
-            "dynamic":   pygame.sprite.Group(),  # entidades con movimiento (jugador, enemigos)
-            "map_front": pygame.sprite.Group(),  # capas Z > 0  (techos, cubiertas)
-            "lights":    pygame.sprite.Group(),  # todas las luces
-            "hud": pygame.sprite.Group(),        # Head' ups display y efectos de pantalla
+            "map_back":  pygame.sprite.Group(),           # capas Z <= 0 (suelo, paredes)
+            "entities":  pygame.sprite.LayeredUpdates(),  # todas las entidades, Y-sorted por layer
+            "map_front": pygame.sprite.Group(),           # capas Z > 0  (techos, cubiertas)
+            "lights":    pygame.sprite.Group(),           # todas las luces
+            "hud":       pygame.sprite.Group(),           # HUD y efectos de pantalla
         }
-        self.rooms = []
+        self.room_groups = [] # lista de listas: sub-rects agrupados por nombre (para _active_rooms)
+        self.room_data   = [] # lista de (bbox_world, mask_surface) pre-computados por room
         self.player = None
         self.light_screen = self.game.screen.copy()
-        self.map    = objects.tileMap("TestMap",
+        self.map    = objects.tileMap("lvl1_tutorial",
                                       back_group=self.groups["map_back"],
                                       front_group=self.groups["map_front"])
         self.camera = objects.Camera()
-        for g in self.groups.values():
-            self.camera.addGroup(g)
+        # Solo registrar grupos del mundo (HUD no se mueve con la cámara)
+        for name in ("map_back", "entities", "map_front", "lights"):
+            self.camera.addGroup(self.groups[name])
         self._load_from_tiled()
         if self.player:
             self.camera.setReference(self.player)
@@ -52,22 +54,47 @@ class TestScene(abstract.Scene):
                 if event.key == pygame.K_g:      SaveManager.save(self)
                 if event.key == pygame.K_ESCAPE: self.game.switchScene(PauseScene(self.game))
 
+    def _active_rooms(self):
+        """Rooms (world-space) que se solapan con el viewport de la cámara."""
+        return [rect for rects in self.room_groups for rect in rects
+                if rect.colliderect(self.camera.pos)]
+
     def update(self, dt):
         if not self.player:
             return
+
+        # 1. Player siempre se actualiza
         self.player.update(dt, map=self.map.reachable)
-        updated = {self.player}
-        for group_name in ("static", "dynamic"):
-            for sprite in self.groups[group_name].sprites():
+
+        # 2. Filtrar entidades activas en rooms visibles (spritecollide C-level)
+        updated = {id(self.player)}
+        cam = self.camera.pos
+        for room in self._active_rooms():
+            room_sprite = pygame.sprite.Sprite()
+            room_sprite.rect = room.move(-cam.x, -cam.y)
+            #Actualizar entidades
+            for sprite in pygame.sprite.spritecollide(room_sprite, self.groups["entities"], False):
+                print("  SPRITE RECT:", sprite.rect, "parent:", type(sprite.parent).__name__)
                 ent = sprite.parent
-                if ent not in updated:
-                    updated.add(ent)
-                    ent.update(dt, self.player.pos.topleft)
+                ent_id = id(ent)
+                if ent_id not in updated:
+                    updated.add(ent_id)
+                    if ent.pos.colliderect(self.player.pos):
+                        ent.on_collision(self.player)
+                    if isinstance(ent, Key):
+                     ent.update(dt, self.player.pos.topleft)
+                    else:
+                     ent.update(dt)
+
+        # 3. Update gráfico de todos los sprites (posición, animación, Y-sort)
         for g in self.groups.values():
             g.update(dt)
+
+        # 4. Muerte / transiciones
         if self.player.health.is_dead:
             self.game.switchScene(GameOverScene(self.game))
             return
+        
         self.camera.update(dt)
 
     def draw(self):
@@ -79,68 +106,109 @@ class TestScene(abstract.Scene):
             if screen_rect.colliderect(sprite.rect):
                 self.game.screen.blit(sprite.image, sprite.rect)
         
-        # 2. Entidades: static + dynamic Y-sorted juntas
-        all_ents = (self.groups["static"].sprites() +
-                    self.groups["dynamic"].sprites())
-        for sprite in sorted(all_ents, key=lambda s: s.rect.bottom):
-            self.game.screen.blit(sprite.image, sprite.rect)
+        # 2. Entidades: Y-sorted automáticamente por LayeredUpdates
+        self.groups["entities"].draw(self.game.screen)
 
         # 3. Mapa foreground (Z > 0): sobre las entidades
         for sprite in self.groups["map_front"].sprites():
             if screen_rect.colliderect(sprite.rect):
                 self.game.screen.blit(sprite.image, sprite.rect)
 
-        # 4. Luces: clipeadas al rect de su habitación + BLEND_MULT
+        # 4. Luces: clipeadas a la forma real del room + BLEND_MULT
         self.light_screen.fill("grey10")
+        cam = self.camera.pos
         for sprite in self.groups["lights"].sprites():
-            clip = self._room_clip_for(sprite.parent.pos)
-            if clip:
-                self.light_screen.set_clip(clip)
-            self.light_screen.blit(sprite.image, sprite.rect, special_flags=pygame.BLEND_RGBA_ADD)
-            self.light_screen.set_clip(None)
+            bbox_world, mask = self._room_clip_for(sprite.parent.pos)
+            if mask:
+                # mask pre-computada en load time (world-space local al bbox).
+                # Solo se crea temp por frame; mask se reutiliza sin re-alocar.
+                bbox_screen = bbox_world.move(-cam.x, -cam.y)
+                temp = pygame.Surface(bbox_world.size, pygame.SRCALPHA)
+                temp.fill((0, 0, 0, 0))
+                temp.blit(sprite.image, (sprite.rect.x - bbox_screen.x, sprite.rect.y - bbox_screen.y))
+                temp.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                self.light_screen.blit(temp, bbox_screen.topleft, special_flags=pygame.BLEND_RGBA_ADD)
+            else:
+                self.light_screen.blit(sprite.image, sprite.rect, special_flags=pygame.BLEND_RGBA_ADD)
         self.game.screen.blit(self.light_screen, (0, 0), special_flags=pygame.BLEND_MULT)
-      #  if hasattr(self, 'health_hud'):
-       #     self.health_hud.draw(self.game.screen)
+
+        # 5. HUD (por encima de iluminación, no afectado por luz)
+        if hasattr(self, 'health_hud'):
+            self.health_hud.draw(self.game.screen)
 
     def _room_clip_for(self, world_pos):
-        """Rect de la habitación que contiene world_pos, en coordenadas de pantalla."""
-        cam = self.camera.pos
-        for room in self.rooms:
-            if room.colliderect(world_pos):
-                return room.move(-cam.x, -cam.y)
-        return None
+        """Devuelve (bbox_world, mask_surface) del room que contiene world_pos, o (None, None)."""
+        for (bbox, mask), rects in zip(self.room_data, self.room_groups):
+            for rect in rects:
+                if rect.collidepoint(world_pos.center):
+                    return bbox, mask
+        return None, None
 
     def _load_from_tiled(self):
         scale = ResourceManager.getConfig().getint("video", "scale")
-        static_classes  = {"Switch": Switch, "Door": Door}
-        dynamic_classes = {"Player": player.Player,"Shadow": Shadow}
+        entity_classes = {
+            "Switch": Switch, "Door": Door,
+            "Player": player.Player, "Shadow": Shadow,
+            "Portal": Portal,
+            "Light": LightObject,
+            "Key": Key
+        }
+        room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
         temp = {}
         for obj in self.map.tmx.objects:
-            obj_type = obj.type.strip()
-            if obj_type == "Room":
-                self.rooms.append(pygame.Rect(
-                    obj.x * scale, obj.y * scale,
-                    obj.width * scale, obj.height * scale
-                ))
+            if not obj.type:
+                DebugLogger.log("WARN: objeto sin tipo ignorado: name='%s' pos=(%g,%g)",
+                                obj.name or str(obj.id), obj.x, obj.y)
                 continue
+            obj_type = obj.type.strip()
+            print("OBJ:", obj.name, obj.type)
+            if obj_type == "Room":
+                rect = pygame.Rect(obj.x * scale, obj.y * scale,
+                                   obj.width * scale, obj.height * scale)
+                key = obj.name.strip() if obj.name else str(obj.id)
+                room_buckets.setdefault(key, []).append(rect)
+                DebugLogger.log("Room leida: '%s' tiled=(%g,%g %gx%g) scaled=%s",
+                                key, obj.x, obj.y, obj.width, obj.height, rect)
+                continue
+            entity_name = (obj.name or str(obj.id)).strip()
             if obj_type == "Light":
                 LightObject(pos=(obj.x, obj.y),
+                            name=entity_name,
                             light_group=self.groups["lights"],
                             **obj.properties)
                 continue
-            if obj_type in static_classes:
-                graphic_group = self.groups["static"]
-                cls = static_classes[obj_type]
-            elif obj_type in dynamic_classes:
-                graphic_group = self.groups["dynamic"]
-                cls = dynamic_classes[obj_type]
-            else:
+            cls = entity_classes.get(obj_type)
+            if not cls:
                 continue
-            ent = cls(pos=(obj.x, obj.y), graphic_group=graphic_group,light_group=self.groups["lights"], **obj.properties)
-            temp[obj.name or str(obj.id)] = ent
+            ent = cls(
+                pos=(obj.x, obj.y),
+                size=(obj.width, obj.height),
+                name=entity_name,
+                graphic_group=self.groups["entities"],
+                light_group=self.groups["lights"],
+                **obj.properties)
+            temp[entity_name] = ent
             if obj_type == "Player":
                 self.player = ent
+
+        # Registrar rooms y pre-computar máscara por room (una sola vez)
+        for name, rects in room_buckets.items():
+            self.room_groups.append(rects)
+            bbox = rects[0].unionall(rects[1:])
+            mask = pygame.Surface(bbox.size, pygame.SRCALPHA)
+            mask.fill((0, 0, 0, 0))
+            for r in rects:
+                mask.fill((255, 255, 255, 255), r.move(-bbox.x, -bbox.y))
+            self.room_data.append((bbox, mask))
+            DebugLogger.log("Room final: '%s' %d parte(s) -> %s",
+                            name, len(rects), [str(r) for r in rects])
+
+        # Enlazar observadores y resolver targets (una sola pasada)
         for ent in temp.values():
+            if hasattr(ent, "resolve_target"):
+                ent.resolve_target(temp)
+            if isinstance(ent, Key):
+             ent.player = self.player
             if not hasattr(ent, "target") or not ent.target:
                 continue
             names = str(ent.target).split(",")
@@ -192,13 +260,7 @@ class MainMenu(abstract.Scene):
 #   1. Crear clase que herede _SettingsTab
 #   2. Añadir instancia a self.TABS en SettingsScene.__init__
 # ─────────────────────────────────────────────────────────────────────
-class _SettingsTab:
-    def update(self, dt):          pass
-    def events(self, events):      pass
-    def draw(self, screen, s, font): pass
-
-
-class _VideoTab(_SettingsTab):
+class _VideoTab:
     RESOLUTIONS = [(1920, 1080), (2560, 1440)]  # añade resoluciones aquí
     FPS_OPTIONS = [30, 60, 120, 144,  240, 360, 500, 1000]
 
@@ -208,6 +270,8 @@ class _VideoTab(_SettingsTab):
     _BX  = 120   # x botón <
     _BX2 = 130  # x botón >
     _Y   = [60, 80, 100]   # y de cada fila: resolución, fullscreen, fps
+
+    def events(self, events): pass
 
     def __init__(self):
         cfg = ResourceManager.getConfig()
@@ -246,7 +310,7 @@ class _VideoTab(_SettingsTab):
         if self.fps_next.update(dt): self._fps_i = (self._fps_i + 1) % len(self.FPS_OPTIONS)
 
     def draw(self, screen, s, font):
-        rows = [
+        rows = [             
             ("Resolucion", self._Y[0], f"{self.resolution[0]}x{self.resolution[1]}"),
             ("Fullscreen", self._Y[1], "On" if self._fs else "Off"),
             ("FPS max",    self._Y[2], str(self.maxfps)),

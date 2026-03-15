@@ -5,84 +5,76 @@ import pygame
 from debugLogger import DebugLogger
 
 class Door(abstract.Object, abstract.Observer):
-    def __init__(self, pos, graphic_group=None, light_group=None, **kwargs):
-        graphic_group = graphic_group
-        light_group = light_group 
-        super().__init__("door", pos)
-        
-        self.is_locked = kwargs.get("is_locked", "True")
+    def __init__(self, pos, name="door", graphic_group=None, light_group=None, **kwargs):
+        super().__init__(name, pos)
+
+        is_locked_val = kwargs.get("is_locked", "True")
+        self.is_locked = str(is_locked_val).lower() == "true"
         self.is_open = False
-        self.proximity_range = kwargs.get("proximity_range", None) # Distancia para que se abra sola
-        
+        self.key_required = kwargs.get("required_key", None) 
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas)
-        
-       
-        self.graphic.add(graphic_group)
+        if graphic_group:
+            self.graphic.add(graphic_group)
+
         self.graphic.addState("locked", [0])   
         self.graphic.addState("unlocked", [1])  
         self.graphic.addState("opening", [2,3])   
         
-        # Estado inicial
+        # Estado inicial visual
         if self.is_locked:
             self.graphic.setState("locked")
         else:
             self.graphic.setState("unlocked")
-        DebugLogger.log("Door init: pos=%s is_locked=%s proximity_range=%s",
-                        pos, self.is_locked, self.proximity_range)
+        DebugLogger.log("Door init: name=%s pos=%s is_locked=%s", name, pos, self.is_locked)
 
     def on_notify(self, entity, event):
-        if event == 'SWITCH_ON':
+        if event == 'SWITCH_ON' or event == 'KEY_PICKED':
             self.unlock()
-            DebugLogger.log("Puerta desbloqueada (evento SWITCH_ON)")
         elif event == 'SWITCH_OFF':
             self.lock()
-            DebugLogger.log("Puerta bloqueada (evento SWITCH_OFF)")
 
     def unlock(self):
-        self.is_locked = False
-        self.graphic.setState("unlocked")
-       
+        if self.is_locked:
+            self.is_locked = False
+            self.graphic.setState("unlocked")
+            print(f"Puerta desbloqueada. Ya puedes pulsar 'O' para abrir.")
 
     def lock(self):
         self.is_locked = True
         self.is_open = False
         self.graphic.setState("locked")
 
-    def update(self, dt, player_pos):
-        self.graphic.update(dt)
-        if self.is_locked:
-            return
-
-        # Se calcula la distancia al jugador
-        p_vec = pygame.Vector2(player_pos)
-        d_vec = pygame.Vector2(self.pos.topleft)
-        distance = d_vec.distance_to(p_vec)
-
-        if distance < self.proximity_range:
-            if not self.is_open:
-                self.open_door()
+    def on_collision(self, other):
+     keys = pygame.key.get_pressed()
+     print(f"DOOR COLLISION: is_locked={self.is_locked} key_required={self.key_required} player_keys={getattr(other, 'keys', 'N/A')} O_pressed={keys[pygame.K_o]}")
+     if not keys[pygame.K_o]:
+        return
+    
+     if self.is_locked:
+        if self.key_required and hasattr(other, 'keys') and self.key_required in other.keys:
+            other.keys.remove(self.key_required)
+            self.unlock()
+            self.open_door()
+        elif not self.key_required:
+            self.unlock()
+            self.open_door()
         else:
-            if self.is_open:
-                self.close_door()
+            print(f"Necesitas la llave: {self.key_required} | Tienes: {getattr(other, 'keys', [])}")
+     elif not self.is_open:
+        self.open_door()
+
+    def update(self, dt):
+        self.graphic.update(dt)
 
     def open_door(self):
         self.is_open = True
-        self.graphic.animate = True 
-        self.graphic.loop = False
-        self.graphic.setState("opening") # Pasa del frame 2 al 3
+        self.graphic.animate = True
+        self.graphic.setState("opening")
         DebugLogger.log("Puerta abierta por proximidad.")
 
     def close_door(self):
         self.is_open = False
         self.graphic.animate = False
-        self.graphic.setState("unlocked") # Vuelve al frame 1 (cerrada pero sin candado)
-        DebugLogger.log("Puerta cerrada.")
-
-    def serialize(self):
-        return {"is_locked": self.is_locked}
-
-    def unserialize(self, data):
-        self.is_locked = data["is_locked"]
-        if self.is_locked: self.graphic.setState("locked")
-        else: self.graphic.setState("unlocked")
+        self.graphic.setState("unlocked") 
+        print("Puerta cerrada.")

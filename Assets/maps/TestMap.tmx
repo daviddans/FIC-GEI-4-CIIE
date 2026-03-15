@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="10">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="9" nextobjectid="18">
  <tileset firstgid="1" name="tilemapLab01" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="tilemapLab01.png" width="256" height="256"/>
   <tile id="2">
@@ -41,7 +41,11 @@
    <properties>
     <property name="group" value="TestGroup"/>
     <property name="is_locked" type="bool" value="true"/>
+<<<<<<< HEAD
     <property name="proximity_range" type="int" value="80"/>
+=======
+    <property name="key_required" value="key1"/>
+>>>>>>> develop
    </properties>
   </object>
   <object id="7" name="switch1" type="Switch" x="72.3556" y="210.935" width="1.22637" height="2.45273">
@@ -52,11 +56,27 @@
     <property name="target_object" value="door1"/>
    </properties>
   </object>
+<<<<<<< HEAD
   <object id="9" name="shadow" type="Shadow" x="91.9775" y="120.184">
+=======
+  <object id="9" name="shadow" type="Shadow" x="51.025" y="78.0181">
+>>>>>>> develop
    <properties>
     <property name="behavior" value="chase"/>
    </properties>
   </object>
+  <object id="17" name="key1" type="Key" x="354.667" y="208">
+   <properties>
+    <property name="group" value="TestGroup"/>
+    <property name="key_id" value="key1"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup id="8" name="Object Layer 2">
+  <object id="10" name="room1" type="Room" x="7.41931" y="2.4731" width="68.3915" height="276.988"/>
+  <object id="12" name="room1" type="Room" x="40.199" y="-1.9463" width="117.361" height="82.9961"/>
+  <object id="13" name="room2" type="Room" x="332.129" y="159.086" width="123.011" height="109.364"/>
+  <object id="16" name="pasillo" type="Room" x="60.5249" y="37.4933" width="138.19" height="219.604"/>
  </objectgroup>
  <layer id="5" name="Floor" width="30" height="20">
   <data encoding="csv">
@@ -111,30 +131,6 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,48,0,0,0,0,48,0,0,0,0,47,47,0,0,0,0,0,0,48,0,0,48,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-</data>
- </layer>
- <layer id="4" width="30" height="20">
-  <data encoding="csv">
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
