@@ -8,9 +8,10 @@ class Door(abstract.Object, abstract.Observer):
     def __init__(self, pos, name="door", graphic_group=None, light_group=None, **kwargs):
         super().__init__(name, pos)
 
-        self.is_locked = kwargs.get("is_locked", "true").lower() == "true"
+        is_locked_val = kwargs.get("is_locked", "True")
+        self.is_locked = str(is_locked_val).lower() == "true"
         self.is_open = False
-        
+        self.key_required = kwargs.get("required_key", None) 
         self.atlas = ResourceManager.getAtlas("puerta")
         self.graphic = components.Graphic(self, self.atlas)
         if graphic_group:
@@ -45,8 +46,23 @@ class Door(abstract.Object, abstract.Observer):
         self.graphic.setState("locked")
 
     def on_collision(self, other):
-        if not self.is_locked and not self.is_open:
+     keys = pygame.key.get_pressed()
+     print(f"DOOR COLLISION: is_locked={self.is_locked} key_required={self.key_required} player_keys={getattr(other, 'keys', 'N/A')} O_pressed={keys[pygame.K_o]}")
+     if not keys[pygame.K_o]:
+        return
+    
+     if self.is_locked:
+        if self.key_required and hasattr(other, 'keys') and self.key_required in other.keys:
+            other.keys.remove(self.key_required)
+            self.unlock()
             self.open_door()
+        elif not self.key_required:
+            self.unlock()
+            self.open_door()
+        else:
+            print(f"Necesitas la llave: {self.key_required} | Tienes: {getattr(other, 'keys', [])}")
+     elif not self.is_open:
+        self.open_door()
 
     def update(self, dt):
         self.graphic.update(dt)

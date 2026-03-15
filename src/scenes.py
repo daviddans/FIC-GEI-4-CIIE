@@ -28,7 +28,7 @@ class TestScene(abstract.Scene):
         self.room_data   = [] # lista de (bbox_world, mask_surface) pre-computados por room
         self.player = None
         self.light_screen = self.game.screen.copy()
-        self.map    = objects.tileMap("TestMap",
+        self.map    = objects.tileMap("lvl1_tutorial",
                                       back_group=self.groups["map_back"],
                                       front_group=self.groups["map_front"])
         self.camera = objects.Camera()
@@ -78,7 +78,10 @@ class TestScene(abstract.Scene):
                     updated.add(ent_id)
                     if ent.pos.colliderect(self.player.pos):
                         ent.on_collision(self.player)
-                    ent.update(dt)
+                    if isinstance(ent, Key):
+                     ent.update(dt, self.player.pos.topleft)
+                    else:
+                     ent.update(dt)
 
         # 3. Update gráfico de todos los sprites (posición, animación, Y-sort)
         for g in self.groups.values():
@@ -144,7 +147,8 @@ class TestScene(abstract.Scene):
             "Switch": Switch, "Door": Door,
             "Player": player.Player, "Shadow": Shadow,
             "Portal": Portal,
-            "Light": LightObject
+            "Light": LightObject,
+            "Key": Key
         }
         room_buckets = {}  # nombre -> [Rect, ...], para merge posterior
         temp = {}
@@ -200,6 +204,8 @@ class TestScene(abstract.Scene):
         for ent in temp.values():
             if hasattr(ent, "resolve_target"):
                 ent.resolve_target(temp)
+            if isinstance(ent, Key):
+             ent.player = self.player
             if not hasattr(ent, "target") or not ent.target:
                 continue
             names = str(ent.target).split(",")

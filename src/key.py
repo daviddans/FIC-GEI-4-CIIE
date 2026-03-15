@@ -10,7 +10,7 @@ class Key(abstract.Object, abstract.Observable):
         print("KEY POS:", self.pos)
     
         abstract.Observable.__init__(self)
-        self.key_id = kwargs.get("key_id", "default_key")
+        self.key_id = kwargs.get("name", "default_key")
         self.proximity_range = 50
         self.is_active = True
         self.atlas = ResourceManager.getAtlas("key")
@@ -37,12 +37,17 @@ class Key(abstract.Object, abstract.Observable):
             if p_vec.distance_to(k_vec) < self.proximity_range:
                 self.interact() # Aquí la llave llama a Nix y se guarda
 
+    def on_collision(self, other):
+     if self.is_active:
+        self.interact()
+
     def interact(self):
      if not hasattr(self, 'player') or self.player is None:
+        print("NO HAY PLAYER EN LA KEY")
         return
-     print(f"Llave {self.key_id} guardada.")
+     print(f"Llave {self.key_id} guardada. Inventario: {self.player.keys}")
      self.player.keys.append(self.key_id)
-     if hasattr(self, 'graphic'):
-        for group in self.graphic.groups():
-            group.remove(self.graphic)
+     self.notify(self, 'KEY_PICKED')
+     for group in self.graphic.groups():
+        group.remove(self.graphic)
      self.is_active = False

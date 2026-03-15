@@ -11,6 +11,7 @@ class Player(abstract.Object):
         speed            = float(kwargs.get("speed", 0.1))
         max_hp           = int(kwargs.get("max_hp", 3))
         animation_speed  = int(kwargs.get("animation_speed", 400))
+        self.keys = []
 
         self.atlas = ResourceManager.getAtlas("Nix")
         self.graphic = components.Graphic(self, self.atlas)
@@ -62,7 +63,11 @@ class Player(abstract.Object):
             self.graphic.setState("walk_left")
         self.move.update(vector, dt, map)
      else:
-        self.graphic.setState(f"idle_{self.facing}")
+      idle_state = f"idle_{self.facing}"
+      self.graphic.current_state = None  # forzar reload
+      self.graphic.setState(idle_state)
+      self.graphic.resetFrame()
+      
 
      self.animation_time_elapsed += dt
      if self.animation_time_elapsed >= self.move_animation_speed:

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="500" height="500" tilewidth="16" tileheight="16" infinite="0" nextlayerid="13" nextobjectid="40">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="500" height="500" tilewidth="16" tileheight="16" infinite="0" nextlayerid="13" nextobjectid="42">
  <tileset firstgid="1" name="CityTileset" tilewidth="16" tileheight="16" tilecount="256" columns="16">
   <image source="CityTileset.png" width="256" height="256"/>
   <tile id="0">
@@ -3842,6 +3842,17 @@
   <object id="34" name="entrada_ruinas" type="Portal" x="2266.94" y="733.422" width="144.26" height="101.831">
    <properties>
     <property name="target" value="&quot;&quot; "/>
+   </properties>
+  </object>
+  <object id="40" name="door1" type="Door" x="136" y="126">
+   <properties>
+    <property name="is_locked" type="bool" value="true"/>
+    <property name="required_key" value="key1"/>
+   </properties>
+  </object>
+  <object id="41" name="key1" type="Key" x="134" y="164">
+   <properties>
+    <property name="key_id" value="key1"/>
    </properties>
   </object>
  </objectgroup>
